@@ -1632,27 +1632,190 @@ export default function App() {
     return y + Math.max(6, wrapped.length * 6);
   }
 
-  async function exportGenericContractPdf({ fileName, title, subtitle = "", rows = [], footer = "" }) {
+  async function exportGenericContractPdf({ fileName, title, subtitle = "", rows = [], footer = "", signerLeft = "", signerMiddle = "", signerRight = "", signerLeftLabel = "Mülk Sahibi", signerMiddleLabel = "Emlakçı", signerRightLabel = "İmza" }) {
     try {
-      const pdf = new jsPDF();
-      let y = await drawPdfHeader(pdf, title, subtitle);
-      rows.forEach(([label, value]) => {
-        y = drawPdfField(pdf, label, value, y);
-      });
-      if (footer) {
-        y += 4;
-        pdf.setFont(undefined, "bold");
-        pdf.text("Not:", 18, y);
-        pdf.setFont(undefined, "normal");
-        const wrapped = pdf.splitTextToSize(footer, 170);
-        pdf.text(wrapped, 18, y + 6);
-        y += wrapped.length * 6 + 8;
+      const pdf = new jsPDF({ unit: "mm", format: "a4" });
+      const pageW = 210;
+      const marginL = 15;
+      const marginR = 15;
+      const contentW = pageW - marginL - marginR;
+
+      // ── ARKA PLAN ──
+      pdf.setFillColor(248, 250, 255);
+      pdf.rect(0, 0, pageW, 297, "F");
+      pdf.setFillColor(255, 255, 255);
+      pdf.roundedRect(marginL - 4, 8, contentW + 8, 281, 4, 4, "F");
+
+      // ── ÜST ÇERÇEVE ÇİZGİSİ ──
+      pdf.setDrawColor(37, 99, 235);
+      pdf.setLineWidth(1.2);
+      pdf.line(marginL - 4, 8, marginL - 4 + contentW + 8, 8);
+      pdf.setLineWidth(0.3);
+      pdf.setDrawColor(200, 210, 230);
+
+      let y = 16;
+
+      // ── LOGO ──
+      if (officeProfile.logoDataUrl) {
+        try {
+          const fmt = officeProfile.logoDataUrl.includes("image/png") ? "PNG" : "JPEG";
+          pdf.addImage(officeProfile.logoDataUrl, fmt, marginL, y, 18, 18);
+        } catch (e) { /* logo eklenemedi */ }
       }
-      pdf.setFontSize(10);
-      pdf.text("Bu çıktı e-key CRM üzerinden oluşturulmuştur.", 18, 285);
+
+      // ── OFİS BİLGİLERİ ──
+      const hasLogo = !!officeProfile.logoDataUrl;
+      const infoX = hasLogo ? marginL + 22 : marginL;
+      const officeName = officeProfile.officeName || "e-key Emlak";
+      pdf.setFontSize(13);
+      pdf.setFont(undefined, "bold");
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(safePdfText(officeName), infoX, y + 5);
+
+      pdf.setFontSize(8.5);
+      pdf.setFont(undefined, "normal");
+      pdf.setTextColor(100, 116, 139);
+      const officeDetails = [
+        officeProfile.agentName ? `Danisман: ${officeProfile.agentName}` : "",
+        officeProfile.phone ? `Tel: ${officeProfile.phone}` : "",
+        officeProfile.email ? officeProfile.email : "",
+        officeProfile.address ? officeProfile.address : "",
+      ].filter(Boolean);
+      let detailY = y + 10;
+      officeDetails.forEach((line) => {
+        pdf.text(safePdfText(line), infoX, detailY);
+        detailY += 4.5;
+      });
+
+      // Sağ üst: Sözleşme no ve tarih
+      const contractNoRow = rows.find(([l]) => l === "Sözleşme No");
+      const contractDateRow = rows.find(([l]) => l === "Sözleşme Tarihi");
+      if (contractNoRow || contractDateRow) {
+        pdf.setFontSize(8.5);
+        pdf.setTextColor(100, 116, 139);
+        if (contractNoRow) {
+          pdf.text(`No: ${safePdfText(contractNoRow[1])}`, pageW - marginR, y + 5, { align: "right" });
+        }
+        if (contractDateRow) {
+          pdf.text(`Tarih: ${safePdfText(contractDateRow[1])}`, pageW - marginR, y + 10, { align: "right" });
+        }
+      }
+
+      y = Math.max(y + 26, detailY + 4);
+
+      // ── AYIRICI ──
+      pdf.setDrawColor(37, 99, 235);
+      pdf.setLineWidth(0.6);
+      pdf.line(marginL, y, pageW - marginR, y);
+      y += 7;
+
+      // ── BAŞLIK ──
+      pdf.setFontSize(16);
+      pdf.setFont(undefined, "bold");
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(safePdfText(title).toUpperCase(), pageW / 2, y, { align: "center" });
+      y += 4;
+      if (subtitle) {
+        pdf.setFontSize(9);
+        pdf.setFont(undefined, "normal");
+        pdf.setTextColor(100, 116, 139);
+        pdf.text(safePdfText(subtitle), pageW / 2, y + 4, { align: "center" });
+        y += 8;
+      }
+      y += 6;
+
+      // ── TABLO ──
+      const labelColW = 58;
+      const valueColW = contentW - labelColW;
+      const rowH = 9;
+      const skipRows = ["Sözleşme No", "Sözleşme Tarihi"];
+
+      rows.filter(([l]) => !skipRows.includes(l)).forEach(([label, value], index) => {
+        const isEven = index % 2 === 0;
+        if (isEven) {
+          pdf.setFillColor(245, 248, 255);
+        } else {
+          pdf.setFillColor(255, 255, 255);
+        }
+        pdf.rect(marginL, y, labelColW, rowH, "F");
+        pdf.rect(marginL + labelColW, y, valueColW, rowH, "F");
+
+        pdf.setDrawColor(220, 228, 240);
+        pdf.setLineWidth(0.25);
+        pdf.rect(marginL, y, contentW, rowH, "S");
+        pdf.line(marginL + labelColW, y, marginL + labelColW, y + rowH);
+
+        pdf.setFontSize(9);
+        pdf.setFont(undefined, "bold");
+        pdf.setTextColor(71, 85, 105);
+        pdf.text(safePdfText(label), marginL + 3, y + 6);
+
+        pdf.setFont(undefined, "normal");
+        pdf.setTextColor(15, 23, 42);
+        const valStr = safePdfText(String(value || "-"));
+        const wrapped = pdf.splitTextToSize(valStr, valueColW - 6);
+        if (wrapped.length > 1) {
+          pdf.setFontSize(8);
+          pdf.text(wrapped[0] + "...", marginL + labelColW + 3, y + 6);
+        } else {
+          pdf.text(valStr, marginL + labelColW + 3, y + 6);
+        }
+        y += rowH;
+      });
+
+      // ── NOT ALANI ──
+      if (footer) {
+        y += 5;
+        pdf.setFillColor(255, 248, 230);
+        pdf.setDrawColor(217, 119, 6);
+        pdf.setLineWidth(0.3);
+        const footerLines = pdf.splitTextToSize(safePdfText(footer), contentW - 20);
+        const footerBoxH = footerLines.length * 5 + 10;
+        pdf.roundedRect(marginL, y, contentW, footerBoxH, 2, 2, "FD");
+        pdf.setFontSize(8.5);
+        pdf.setFont(undefined, "bold");
+        pdf.setTextColor(146, 64, 14);
+        pdf.text("Not:", marginL + 4, y + 6);
+        pdf.setFont(undefined, "normal");
+        pdf.text(footerLines, marginL + 14, y + 6);
+        y += footerBoxH + 6;
+      }
+
+      // ── İMZA ALANI ──
+      const signY = Math.max(y + 10, 240);
+      pdf.setDrawColor(200, 210, 230);
+      pdf.setLineWidth(0.3);
+      pdf.line(marginL, signY - 1, pageW - marginR, signY - 1);
+
+      const col1X = marginL + 8;
+      const col2X = pageW / 2 - 20;
+      const col3X = pageW - marginR - 48;
+
+      [[col1X, signerLeftLabel, signerLeft], [col2X, signerMiddleLabel, signerMiddle], [col3X, signerRightLabel, signerRight]].forEach(([x, roleLabel, name]) => {
+        pdf.setFontSize(8.5);
+        pdf.setFont(undefined, "bold");
+        pdf.setTextColor(100, 116, 139);
+        pdf.text(safePdfText(String(roleLabel)), x, signY + 5);
+        pdf.setDrawColor(71, 85, 105);
+        pdf.setLineWidth(0.5);
+        pdf.line(x, signY + 18, x + 42, signY + 18);
+        if (name) {
+          pdf.setFontSize(9);
+          pdf.setFont(undefined, "normal");
+          pdf.setTextColor(15, 23, 42);
+          pdf.text(safePdfText(String(name)), x, signY + 24);
+        }
+      });
+
+      // ── ALT FOOTER ──
+      pdf.setFontSize(7.5);
+      pdf.setFont(undefined, "normal");
+      pdf.setTextColor(148, 163, 184);
+      pdf.text("Bu belge e-key CRM sistemi tarafindan olusturulmustur.", pageW / 2, 291, { align: "center" });
+
       pdf.save(fileName);
     } catch (e) {
-      alert("PDF hatası: " + e.message);
+      alert("PDF hatasi: " + e.message);
     }
   }
 
@@ -1937,10 +2100,6 @@ export default function App() {
       <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
         <rect width="100%" height="100%" fill="#ffffff" />
         <text x="${width / 2}" y="${titleY}" text-anchor="middle" font-family="Times New Roman, serif" font-size="${titleFontSize}" font-weight="700">${escapeSvgText(title)}</text>
-        ${(() => {
-          const officeLine = [officeProfile.officeName, officeProfile.agentName, officeProfile.phone].filter(Boolean).join(" • ");
-          return officeLine ? `<text x="${width - 42}" y="34" text-anchor="end" font-family="Arial, sans-serif" font-size="11" fill="#444">${escapeSvgText(officeLine)}</text>` : "";
-        })()}
         ${blocks.join("")}
         ${middleBlock}
         ${signatureBlock}
@@ -1988,8 +2147,8 @@ export default function App() {
   async function exportSaleAgreementPdf() {
     await exportGenericContractPdf({
       fileName: `satis-sozlesmesi-${saleAgreementForm.contractNo || todayStr}.pdf`,
-      title: "Satış Sözleşmesi",
-      subtitle: "Emlak satış süreci için hazırlanmış sözleşme özeti",
+      title: "Satış Ön Protokolü",
+      subtitle: "Taraflar arasında akdedilen gayrimenkul satış sözleşmesi",
       rows: [
         ["Sözleşme No", saleAgreementForm.contractNo || "-"],
         ["Sözleşme Tarihi", formatShortDate(saleAgreementForm.contractDate)],
@@ -2007,6 +2166,12 @@ export default function App() {
         ["Teslim Tarihi", formatShortDate(saleAgreementForm.deliveryDate)],
       ],
       footer: saleAgreementForm.note || "",
+      signerLeftLabel: "Satıcı",
+      signerLeft: saleAgreementForm.sellerName || "",
+      signerMiddleLabel: "Alıcı",
+      signerMiddle: saleAgreementForm.buyerName || "",
+      signerRightLabel: "Emlakçı",
+      signerRight: officeProfile.agentName || getOfficeDisplayName(),
     });
   }
 
@@ -2066,10 +2231,15 @@ export default function App() {
             </div>
             <div style={{ marginTop: 12 }}>{renderTextarea({ label: "Adres", value: saleAgreementForm.propertyAddress, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, propertyAddress: v }) })}</div>
             <div style={{ marginTop: 12 }}>{renderTextarea({ label: "Not", value: saleAgreementForm.note, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, note: v }) })}</div>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
-              <button onClick={exportSaleAgreementPdf} style={actionButton(true)}>PDF Oluştur</button>
-              <button onClick={() => shareOnWhatsApp(saleAgreementForm.sellerPhone || saleAgreementForm.buyerPhone, buildSaleAgreementWhatsappText())} style={actionButton(false, { background: "#16a34a", color: "#ffffff", border: "none" })}>WhatsApp Gönder</button>
-              <button onClick={() => setSaleAgreementForm(emptySaleAgreement())} style={actionButton(false)}>Temizle</button>
+            <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button onClick={exportSaleAgreementPdf} style={actionButton(true)}>📥 PDF İndir</button>
+                <button onClick={() => shareOnWhatsApp(saleAgreementForm.sellerPhone || saleAgreementForm.buyerPhone, buildSaleAgreementWhatsappText())} style={actionButton(false, { background: "#16a34a", color: "#ffffff", border: "none" })}>💬 WhatsApp Aç</button>
+                <button onClick={() => setSaleAgreementForm(emptySaleAgreement())} style={actionButton(false)}>Temizle</button>
+              </div>
+              <div style={{ fontSize: 12, color: colors.sub, lineHeight: 1.6, padding: "10px 14px", background: colors.panel2, borderRadius: 14, border: `1px solid ${colors.border}` }}>
+                💡 Önce <strong>PDF İndir</strong> ile sözleşmeyi indirin, ardından <strong>WhatsApp Aç</strong> ile sohbeti başlatıp PDF'i paylaşın.
+              </div>
             </div>
           </div>
         </div>
@@ -2148,15 +2318,10 @@ export default function App() {
                 {renderTextarea({ label: "Özel Koşullar / Not", value: rentAgreementForm.note, onChange: (v) => setRentAgreementForm({ ...rentAgreementForm, note: v }), placeholder: "3. sayfadaki özel koşullara eklenecek notlar" })}
               </div>
             </div>
-            <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button onClick={exportRentAgreementPdf} style={actionButton(true)}>📥 PDF İndir</button>
-                <button onClick={() => shareOnWhatsApp(rentAgreementForm.landlordPhone || rentAgreementForm.tenantPhone, buildRentAgreementWhatsappText())} style={actionButton(false, { background: "#16a34a", color: "#ffffff", border: "none" })}>💬 WhatsApp Aç</button>
-                <button onClick={() => setRentAgreementForm(emptyRentAgreement())} style={actionButton(false)}>Temizle</button>
-              </div>
-              <div style={{ fontSize: 12, color: colors.sub, lineHeight: 1.6, padding: "10px 14px", background: colors.panel2, borderRadius: 14, border: `1px solid ${colors.border}` }}>
-                💡 <strong>Önce PDF İndir</strong> ile kira sözleşmesini indirin, ardından <strong>WhatsApp Aç</strong> ile sohbeti başlatın ve indirdiğiniz PDF'i paylaşın.
-              </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
+              <button onClick={exportRentAgreementPdf} style={actionButton(true)}>Şablona Göre PDF Oluştur</button>
+              <button onClick={() => shareOnWhatsApp(rentAgreementForm.landlordPhone || rentAgreementForm.tenantPhone, buildRentAgreementWhatsappText())} style={actionButton(false, { background: "#16a34a", color: "#ffffff", border: "none" })}>WhatsApp Gönder</button>
+              <button onClick={() => setRentAgreementForm(emptyRentAgreement())} style={actionButton(false)}>Temizle</button>
             </div>
           </div>
         </div>
@@ -2338,7 +2503,6 @@ export default function App() {
       minWidth: 0,
       maxWidth: "100%",
       boxShadow: primary ? colors.shadowSoft : `${colors.shadowSoft}, ${colors.ring}`,
-      transition: "opacity 0.15s, box-shadow 0.15s, transform 0.1s",
       ...extra,
     };
   }
@@ -2383,108 +2547,105 @@ export default function App() {
   }
 
   function renderAuthScreen() {
-    const inputStyle = {
-      width: "100%",
-      padding: "13px 15px",
-      borderRadius: 14,
-      border: `1.5px solid ${colors.border2}`,
-      background: colors.panel2,
-      color: colors.text,
-      outline: "none",
-      boxSizing: "border-box",
-      fontSize: 14,
-    };
     return (
       <div
         style={{
           minHeight: "100vh",
           display: "grid",
           placeItems: "center",
-          padding: isMobile ? 16 : 24,
+          padding: 20,
           background: dark
-            ? "linear-gradient(135deg, #07111f 0%, #0b1728 50%, #07111f 100%)"
-            : "linear-gradient(135deg, #dbeafe 0%, #eef4ff 60%, #f0f9ff 100%)",
+            ? "linear-gradient(180deg, #07111f 0%, #0d1728 100%)"
+            : "linear-gradient(180deg, #eef4ff 0%, #f8fbff 100%)",
           color: colors.text,
           fontFamily: "Arial, sans-serif",
         }}
       >
-        <div style={{ width: "100%", maxWidth: 860, display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 0, borderRadius: 28, overflow: "hidden", boxShadow: colors.shadow, border: `1px solid ${colors.border}` }}>
-          {!isMobile && (
-            <div style={{
-              background: dark
-                ? "linear-gradient(145deg, #1e3a5f 0%, #0f2744 100%)"
-                : "linear-gradient(145deg, #1e40af 0%, #2563eb 100%)",
-              padding: 44,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
+        <div
+          style={{
+            width: "100%",
+            maxWidth: 460,
+            padding: 30,
+            borderRadius: 28,
+            background: colors.panel,
+            border: `1px solid ${colors.border}`,
+            boxShadow: colors.shadow,
+          }}
+        >
+          <div
+            style={{
+              width: 58,
+              height: 58,
+              borderRadius: 18,
+              background: dark ? "#60a5fa" : "#2563eb",
               color: "#ffffff",
-            }}>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 36 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(255,255,255,0.2)", display: "grid", placeItems: "center", fontWeight: 900, fontSize: 20 }}>E</div>
-                  <span style={{ fontSize: 24, fontWeight: 900, letterSpacing: "-0.02em" }}>e-key</span>
-                </div>
-                <h2 style={{ margin: "0 0 14px", fontSize: 26, fontWeight: 900, lineHeight: 1.25, color: "#fff" }}>Profesyonel Emlak CRM Paneli</h2>
-                <p style={{ margin: 0, lineHeight: 1.8, opacity: 0.82, fontSize: 14 }}>
-                  Müşterilerinizi, portföylerinizi, sözleşmelerinizi ve randevularınızı tek panelden yönetin.
-                </p>
-              </div>
-              <div style={{ display: "grid", gap: 12, marginTop: 36 }}>
-                {[["👥", "Akıllı müşteri eşleştirme sistemi"], ["📋", "Kira ve satış sözleşmesi PDF üretimi"], ["📅", "Haftalık takvim ve randevu yönetimi"], ["📊", "Raporlar ve portföy analizleri"]].map(([icon, text]) => (
-                  <div key={text} style={{ display: "flex", alignItems: "center", gap: 12, opacity: 0.9, background: "rgba(255,255,255,0.07)", borderRadius: 12, padding: "10px 14px" }}>
-                    <span style={{ fontSize: 17 }}>{icon}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700 }}>{text}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          <div style={{ padding: isMobile ? 28 : 44, background: colors.panel, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            {isMobile && (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 13, background: dark ? "#60a5fa" : "#2563eb", color: "#fff", display: "grid", placeItems: "center", fontWeight: 900, fontSize: 18 }}>E</div>
-                <span style={{ fontSize: 20, fontWeight: 900 }}>e-key</span>
-              </div>
-            )}
-            <h1 style={{ margin: "0 0 6px", fontSize: 24, fontWeight: 900 }}>
-              {authMode === "login" ? "Hoş Geldiniz" : "Hesap Oluştur"}
-            </h1>
-            <p style={{ margin: "0 0 24px", color: colors.sub, lineHeight: 1.6, fontSize: 14 }}>
-              {authMode === "login" ? "Devam etmek için giriş yapın." : "Ücretsiz hesabınızı oluşturun."}
-            </p>
-            <div style={{ display: "grid", gap: 14 }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 12, color: colors.sub, marginBottom: 7, textTransform: "uppercase", letterSpacing: "0.06em" }}>E-posta</div>
-                <input
-                  name="email"
-                  type="email"
-                  placeholder="ornek@email.com"
-                  value={authForm.email}
-                  onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
-                  onKeyDown={(e) => e.key === "Enter" && (authMode === "login" ? handleLogin() : handleRegister())}
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 12, color: colors.sub, marginBottom: 7, textTransform: "uppercase", letterSpacing: "0.06em" }}>Şifre</div>
-                <input
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={authForm.password}
-                  onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
-                  onKeyDown={(e) => e.key === "Enter" && (authMode === "login" ? handleLogin() : handleRegister())}
-                  style={inputStyle}
-                />
-              </div>
-              <button onClick={authMode === "login" ? handleLogin : handleRegister} style={{ ...actionButton(true), padding: "14px 20px", fontSize: 15, marginTop: 4 }}>
-                {authMode === "login" ? "Giriş Yap →" : "Hesap Oluştur →"}
-              </button>
-              <button onClick={() => setAuthMode((m) => (m === "login" ? "register" : "login"))} style={{ ...actionButton(false), fontSize: 13, color: colors.sub }}>
-                {authMode === "login" ? "Hesabınız yok mu? Kayıt olun" : "Zaten hesabınız var mı? Giriş yapın"}
-              </button>
-            </div>
+              display: "grid",
+              placeItems: "center",
+              fontWeight: 900,
+              marginBottom: 18,
+              fontSize: 22,
+            }}
+          >
+            E
+          </div>
+
+          <h1 style={{ margin: 0, fontSize: 32, fontWeight: 900 }}>e-key</h1>
+          <p style={{ color: colors.sub, lineHeight: 1.6, marginTop: 10 }}>
+            Müşteri, portföy, sözleşme ve randevularını modern bir panel üzerinden yönet.
+          </p>
+
+          <div style={{ display: "grid", gap: 10, marginTop: 18 }}>
+            <input
+              name="email"
+              type="email"
+              placeholder="E-posta"
+              value={authForm.email}
+              onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
+              style={{
+                width: "100%",
+                padding: "13px 15px",
+                borderRadius: 16,
+                border: `1px solid ${colors.border2}`,
+                background: colors.panel2,
+                color: colors.text,
+                outline: "none",
+                boxSizing: "border-box",
+                fontSize: 14,
+              }}
+            />
+            <input
+              name="password"
+              type="password"
+              placeholder="Şifre"
+              value={authForm.password}
+              onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+              style={{
+                width: "100%",
+                padding: "13px 15px",
+                borderRadius: 16,
+                border: `1px solid ${colors.border2}`,
+                background: colors.panel2,
+                color: colors.text,
+                outline: "none",
+                boxSizing: "border-box",
+                fontSize: 14,
+              }}
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
+            <button
+              onClick={authMode === "login" ? handleLogin : handleRegister}
+              style={actionButton(true)}
+            >
+              {authMode === "login" ? "Giriş Yap" : "Kayıt Ol"}
+            </button>
+            <button
+              onClick={() => setAuthMode((m) => (m === "login" ? "register" : "login"))}
+              style={actionButton(false)}
+            >
+              {authMode === "login" ? "Kayıt ekranına geç" : "Giriş ekranına geç"}
+            </button>
           </div>
         </div>
       </div>
@@ -3624,14 +3785,6 @@ export default function App() {
             <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
               {filteredPortfolios.length === 0 ? renderEmpty("Portföy bulunamadı", "Henüz bu kriterlere uygun portföy kaydın yok.") : filteredPortfolios.map((item) => (
                 <div key={item.id} style={{ background: selectedPortfolio?.id === item.id ? colors.primarySoft : colors.panel2, border: `1px solid ${selectedPortfolio?.id === item.id ? colors.primary : colors.border}`, borderRadius: 18, padding: 16, display: "grid", gap: 12 }}>
-                  {item.imageUrl && (
-                    <img
-                      src={item.imageUrl}
-                      alt={item.title}
-                      style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 14, border: `1px solid ${colors.border}` }}
-                      onError={(e) => { e.currentTarget.style.display = "none"; }}
-                    />
-                  )}
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
                     <div>
                       <div style={{ fontWeight: 900, fontSize: 19 }}>{item.title}</div>
@@ -4016,11 +4169,12 @@ export default function App() {
 
     const handleExportContractPdf = async (item) => {
       await exportGenericContractPdf({
-        fileName: `sozlesme-${item.contractNo || "kayit"}.pdf`,
+        fileName: `yetki-sozlesmesi-${item.contractNo || "kayit"}.pdf`,
         title: "Emlak Yetki Sözleşmesi",
-        subtitle: "Yetki sözleşmesi özeti ve ofis bilgileri",
+        subtitle: `${getOfficeDisplayName()} • ${formatShortDate(item.startDate)} - ${formatShortDate(item.endDate)}`,
         rows: [
           ["Sözleşme No", item.contractNo || "-"],
+          ["Sözleşme Tarihi", formatShortDate(item.startDate)],
           ["Şirket", item.companyName || officeProfile.officeName || "-"],
           ["Emlakçı", item.agentName || officeProfile.agentName || "-"],
           ["Mülk Sahibi", item.owner || "-"],
@@ -4029,11 +4183,17 @@ export default function App() {
           ["Mülk Tipi", item.propertyType || "-"],
           ["Satış Fiyatı", formatCurrency(item.salePrice)],
           ["Komisyon", `%${item.commission || "-"}`],
-          ["Başlangıç", formatShortDate(item.startDate)],
-          ["Bitiş", formatShortDate(item.endDate)],
+          ["Başlangıç Tarihi", formatShortDate(item.startDate)],
+          ["Bitiş Tarihi", formatShortDate(item.endDate)],
           ["Durum", getContractStatus(item)],
         ],
         footer: item.note || "",
+        signerLeftLabel: "Mülk Sahibi",
+        signerLeft: item.owner || "",
+        signerMiddleLabel: "Emlakçı",
+        signerMiddle: item.agentName || officeProfile.agentName || "",
+        signerRightLabel: "Tarih",
+        signerRight: formatShortDate(item.endDate),
       });
     };
 
@@ -4133,13 +4293,12 @@ export default function App() {
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
                       <button onClick={() => startEditContract(item)} style={actionButton(false)}>Düzenle</button>
                       <button onClick={() => renewContractFromItem(item)} style={actionButton(false)}>Yenileme Taslağı</button>
-                      <button onClick={() => handleExportContractPdf(item)} style={actionButton(false)}>PDF</button>
-                      <button onClick={() => shareOnWhatsApp(item.phone, `${getOfficeDisplayName()} tarafından hazırlanan ${item.contractNo || "sözleşme"} özeti:
-Mülk Sahibi: ${item.owner || "-"}
-Adres: ${item.address || "-"}
-Bitiş: ${formatShortDate(item.endDate)}
-Durum: ${item.calculatedStatus}`)} style={actionButton(false, { background: "#16a34a", color: "#ffffff", border: "none" })}>WhatsApp</button>
+                      <button onClick={() => handleExportContractPdf(item)} style={actionButton(true)}>📥 PDF İndir</button>
+                      <button onClick={() => shareOnWhatsApp(item.phone, `Merhaba, ${getOfficeDisplayName()} ofisinden ${item.contractNo || "sözleşme"} numaralı yetki sözleşmenizi PDF olarak iletiyorum.`)} style={actionButton(false, { background: "#16a34a", color: "#ffffff", border: "none" })}>💬 WhatsApp Aç</button>
                       <button onClick={() => removeItem("contracts", item.id, setContracts)} style={actionButton(false, { background: colors.dangerSoft, color: colors.danger, border: `1px solid ${dark ? "rgba(248,113,113,0.16)" : "#fecaca"}` })}>Sil</button>
+                    </div>
+                    <div style={{ marginTop: 8, fontSize: 12, color: colors.sub, padding: "8px 12px", background: colors.panel3, borderRadius: 12, border: `1px solid ${colors.border}` }}>
+                      💡 Önce <strong>PDF İndir</strong> ile sözleşmeyi indirin, ardından <strong>WhatsApp Aç</strong> ile sohbeti başlatıp PDF'i paylaşın.
                     </div>
                   </div>
                 );
@@ -4214,17 +4373,12 @@ Durum: ${item.calculatedStatus}`)} style={actionButton(false, { background: "#16
           minHeight: "100vh",
           display: "grid",
           placeItems: "center",
-          background: dark ? "linear-gradient(135deg, #07111f 0%, #0b1728 100%)" : "linear-gradient(135deg, #dbeafe 0%, #eef4ff 100%)",
+          background: colors.bg,
           color: colors.text,
           fontFamily: "Arial, sans-serif",
-          gap: 16,
         }}
       >
-        <div style={{ textAlign: "center" }}>
-          <div style={{ width: 56, height: 56, borderRadius: 18, background: dark ? "#60a5fa" : "#2563eb", color: "#fff", display: "grid", placeItems: "center", fontWeight: 900, fontSize: 24, margin: "0 auto 18px" }}>E</div>
-          <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 8 }}>e-key</div>
-          <div style={{ color: colors.sub, fontSize: 14 }}>Yükleniyor...</div>
-        </div>
+        Yükleniyor...
       </div>
     );
   }
@@ -4236,16 +4390,12 @@ Durum: ${item.calculatedStatus}`)} style={actionButton(false, { background: "#16
           minHeight: "100vh",
           display: "grid",
           placeItems: "center",
-          background: dark ? "linear-gradient(135deg, #07111f 0%, #0b1728 100%)" : "linear-gradient(135deg, #dbeafe 0%, #eef4ff 100%)",
+          background: colors.bg,
           color: colors.text,
           fontFamily: "Arial, sans-serif",
         }}
       >
-        <div style={{ textAlign: "center" }}>
-          <div style={{ width: 56, height: 56, borderRadius: 18, background: dark ? "#60a5fa" : "#2563eb", color: "#fff", display: "grid", placeItems: "center", fontWeight: 900, fontSize: 24, margin: "0 auto 18px" }}>E</div>
-          <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 8 }}>e-key</div>
-          <div style={{ color: colors.sub, fontSize: 14 }}>Veriler yükleniyor...</div>
-        </div>
+        Veriler yükleniyor...
       </div>
     );
   }
@@ -4264,7 +4414,7 @@ Durum: ${item.calculatedStatus}`)} style={actionButton(false, { background: "#16
         color: colors.text,
         fontFamily: "Arial, sans-serif",
         display: "grid",
-        gridTemplateColumns: isMobile ? "1fr" : "260px minmax(0, 1fr)",
+        gridTemplateColumns: isMobile ? "1fr" : "250px minmax(0, 1fr)",
         width: "100%",
         maxWidth: "100%",
         overflowX: "hidden",
@@ -4284,7 +4434,6 @@ Durum: ${item.calculatedStatus}`)} style={actionButton(false, { background: "#16
           position: isMobile ? "relative" : "sticky",
           top: 0,
           height: isMobile ? "auto" : "100vh",
-          overflowY: isMobile ? "visible" : "auto",
           backdropFilter: "blur(14px)",
         }}
       >
@@ -4301,19 +4450,15 @@ Durum: ${item.calculatedStatus}`)} style={actionButton(false, { background: "#16
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <div
                 style={{
-                  width: 50,
-                  height: 50,
-                  borderRadius: 15,
-                  background: dark
-                    ? "linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)"
-                    : "linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)",
+                  width: 54,
+                  height: 54,
+                  borderRadius: 18,
+                  background: dark ? "#60a5fa" : "#2563eb",
                   color: "#ffffff",
                   display: "grid",
                   placeItems: "center",
                   fontWeight: 900,
                   fontSize: 22,
-                  flexShrink: 0,
-                  boxShadow: "0 4px 12px rgba(37,99,235,0.35)",
                 }}
               >
                 E
@@ -4345,26 +4490,19 @@ Durum: ${item.calculatedStatus}`)} style={actionButton(false, { background: "#16
                 <button
                   key={item.key}
                   onClick={() => setActiveTab(item.key)}
-                  style={{
-                    ...actionButton(false, {
-                      minWidth: isMobile ? 160 : 0,
-                      width: isMobile ? "auto" : "100%",
-                      justifyContent: isMobile ? "center" : "flex-start",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 11,
-                      whiteSpace: "nowrap",
-                      flexShrink: 0,
-                      background: active
-                        ? (dark ? "linear-gradient(135deg, rgba(59,130,246,0.22) 0%, rgba(96,165,250,0.14) 100%)" : "linear-gradient(135deg, rgba(37,99,235,0.12) 0%, rgba(96,165,250,0.08) 100%)")
-                        : "transparent",
-                      color: active ? colors.primary : colors.text,
-                      border: active ? `1.5px solid ${dark ? "rgba(96,165,250,0.3)" : "rgba(37,99,235,0.2)"}` : "1px solid transparent",
-                      fontWeight: active ? 900 : 700,
-                      padding: isMobile ? "10px 14px" : "11px 14px",
-                      boxShadow: active ? colors.shadowSoft : "none",
-                    }),
-                  }}
+                  style={actionButton(false, {
+                    minWidth: isMobile ? 170 : 0,
+                    width: isMobile ? "auto" : "100%",
+                    justifyContent: isMobile ? "center" : "flex-start",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                    background: active ? colors.primary : colors.panel2,
+                    color: active ? "#ffffff" : colors.text,
+                    border: active ? "none" : `1px solid ${colors.border}`,
+                  })}
                 >
                   <span style={{ fontSize: 18 }}>{item.icon}</span>
                   <span>{item.label}</span>
@@ -4374,30 +4512,30 @@ Durum: ${item.calculatedStatus}`)} style={actionButton(false, { background: "#16
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 8 }}>
+        <div style={{ display: "grid", gap: 10 }}>
           <div
             style={{
-              padding: "12px 14px",
+              padding: "14px 16px",
               background: colors.panel2,
-              borderRadius: 14,
-              fontSize: 13,
+              borderRadius: 16,
+              fontSize: 14,
               wordBreak: "break-word",
               border: `1px solid ${colors.border}`,
             }}
           >
-            <div style={{ color: colors.sub, fontSize: 11, marginBottom: 4, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.06em" }}>Oturum</div>
-            <div style={{ fontWeight: 800, fontSize: 13 }}>{user.email}</div>
+            <div style={{ color: colors.sub, fontSize: 12, marginBottom: 6 }}>Oturum</div>
+            <div style={{ fontWeight: 800 }}>{user.email}</div>
           </div>
 
           <button
             onClick={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
-            style={actionButton(false, { fontSize: 13 })}
+            style={actionButton(false)}
           >
             {theme === "light" ? "🌙 Koyu Tema" : "☀️ Açık Tema"}
           </button>
 
-          <button onClick={handleLogout} style={{ ...actionButton(false, { fontSize: 13, color: colors.danger, border: `1px solid ${dark ? "rgba(248,113,113,0.25)" : "#fecaca"}`, background: colors.dangerSoft }) }}>
-            Çıkış Yap
+          <button onClick={handleLogout} style={actionButton(false)}>
+            Çıkış
           </button>
         </div>
       </aside>
@@ -4408,7 +4546,7 @@ Durum: ${item.calculatedStatus}`)} style={actionButton(false, { background: "#16
             background: colors.panel,
             border: `1px solid ${colors.border}`,
             borderRadius: 24,
-            padding: isMobile ? 16 : 20,
+            padding: 18,
             boxShadow: colors.shadow,
             marginBottom: 18,
           }}
