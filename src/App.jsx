@@ -1632,190 +1632,134 @@ export default function App() {
     return y + Math.max(6, wrapped.length * 6);
   }
 
+  function buildGenericContractSvg({ title, subtitle, rows, footer, contractNo, contractDate, signerLeftLabel, signerLeft, signerMiddleLabel, signerMiddle, signerRightLabel, signerRight }) {
+    const W = 794;
+    const H = 1123;
+    const mX = 36;
+    const usableW = W - mX * 2;
+    const labelW = 220;
+    const valueW = usableW - labelW;
+    const hasLogo = !!officeProfile.logoDataUrl;
+    const textStartX = hasLogo ? 128 : mX;
+    const parts = [];
+
+    // Arka plan
+    parts.push(`<rect width="${W}" height="${H}" fill="#f8faff"/>`);
+    // Mavi header bar
+    parts.push(`<rect x="0" y="0" width="${W}" height="92" fill="#1e3a8a"/>`);
+    parts.push(`<rect x="0" y="88" width="${W}" height="5" fill="#3b82f6"/>`);
+
+    // Ofis adı (beyaz, header içinde)
+    const offName = officeProfile.officeName || "e-key Emlak";
+    parts.push(`<text x="${textStartX}" y="34" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#ffffff">${escapeSvgText(offName)}</text>`);
+
+    let oy = 52;
+    if (officeProfile.agentName) {
+      parts.push(`<text x="${textStartX}" y="${oy}" font-family="Arial, sans-serif" font-size="11" fill="rgba(255,255,255,0.82)">${escapeSvgText("Danışman: " + officeProfile.agentName)}</text>`);
+      oy += 15;
+    }
+    if (officeProfile.phone) {
+      parts.push(`<text x="${textStartX}" y="${oy}" font-family="Arial, sans-serif" font-size="11" fill="rgba(255,255,255,0.82)">${escapeSvgText("Tel: " + officeProfile.phone)}</text>`);
+      oy += 15;
+    }
+    if (officeProfile.email) {
+      parts.push(`<text x="${textStartX}" y="${oy}" font-family="Arial, sans-serif" font-size="11" fill="rgba(255,255,255,0.75)">${escapeSvgText(officeProfile.email)}</text>`);
+    }
+
+    // Sağ üst: sözleşme no + tarih
+    if (contractNo && contractNo !== "-") {
+      parts.push(`<text x="${W - mX}" y="34" text-anchor="end" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="rgba(255,255,255,0.92)">${escapeSvgText("No: " + contractNo)}</text>`);
+    }
+    if (contractDate && contractDate !== "-") {
+      parts.push(`<text x="${W - mX}" y="52" text-anchor="end" font-family="Arial, sans-serif" font-size="11" fill="rgba(255,255,255,0.72)">${escapeSvgText("Tarih: " + contractDate)}</text>`);
+    }
+
+    // Başlık
+    const titleY = 128;
+    parts.push(`<text x="${W / 2}" y="${titleY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="21" font-weight="700" fill="#0f172a">${escapeSvgText(title.toUpperCase())}</text>`);
+    if (subtitle) {
+      parts.push(`<text x="${W / 2}" y="${titleY + 22}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#64748b">${escapeSvgText(subtitle)}</text>`);
+    }
+    // Başlık altı çizgi
+    parts.push(`<line x1="${W / 2 - 70}" y1="${titleY + 32}" x2="${W / 2 + 70}" y2="${titleY + 32}" stroke="#2563eb" stroke-width="2"/>`);
+
+    // Tablo
+    let y = titleY + 52;
+    const skipKeys = ["Sözleşme No", "Sözleşme Tarihi"];
+    const tableRows = rows.filter(([l]) => !skipKeys.includes(l));
+    const lineH = 18;
+
+    tableRows.forEach(([label, value], i) => {
+      const labelLines = wrapSvgText(label, 28);
+      const valueLines = wrapSvgText(String(value || "-"), 54);
+      const rowH = Math.max(44, Math.max(labelLines.length, valueLines.length) * lineH + 16);
+      const bg = i % 2 === 0 ? "#eef4ff" : "#ffffff";
+      parts.push(`<rect x="${mX}" y="${y}" width="${usableW}" height="${rowH}" fill="${bg}"/>`);
+      parts.push(`<rect x="${mX}" y="${y}" width="${usableW}" height="${rowH}" fill="none" stroke="#d1ddf0" stroke-width="1"/>`);
+      parts.push(`<line x1="${mX + labelW}" y1="${y}" x2="${mX + labelW}" y2="${y + rowH}" stroke="#d1ddf0" stroke-width="1"/>`);
+      // Etiket sol kenarda renkli çizgi
+      parts.push(`<rect x="${mX}" y="${y}" width="4" height="${rowH}" fill="#3b82f6"/>`);
+      parts.push(svgTextBlock(labelLines, mX + 14, y + 17, lineH, `font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#334155"`));
+      parts.push(svgTextBlock(valueLines, mX + labelW + 10, y + 17, lineH, `font-family="Arial, sans-serif" font-size="12" fill="#0f172a"`));
+      y += rowH;
+    });
+
+    // Not kutusu
+    if (footer) {
+      y += 18;
+      const noteLines = wrapSvgText(footer, 82);
+      const noteH = noteLines.length * lineH + 28;
+      parts.push(`<rect x="${mX}" y="${y}" width="${usableW}" height="${noteH}" fill="#fffbeb" stroke="#f59e0b" stroke-width="1" rx="5"/>`);
+      parts.push(`<text x="${mX + 14}" y="${y + 18}" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#92400e">Not:</text>`);
+      parts.push(svgTextBlock(noteLines, mX + 52, y + 18, lineH, `font-family="Arial, sans-serif" font-size="11" fill="#78350f"`));
+      y += noteH;
+    }
+
+    // İmza alanı
+    const sigY = Math.max(y + 40, 960);
+    parts.push(`<line x1="${mX}" y1="${sigY - 10}" x2="${W - mX}" y2="${sigY - 10}" stroke="#cbd5e1" stroke-width="1"/>`);
+    const sigCols = [
+      [mX + 30, signerLeftLabel || "İmza 1", signerLeft || ""],
+      [W / 2 - 90, signerMiddleLabel || "İmza 2", signerMiddle || ""],
+      [W - mX - 210, signerRightLabel || "İmza 3", signerRight || ""],
+    ];
+    sigCols.forEach(([x, lbl, name]) => {
+      parts.push(`<text x="${x + 90}" y="${sigY + 10}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#64748b">${escapeSvgText(lbl)}</text>`);
+      parts.push(`<line x1="${x}" y1="${sigY + 46}" x2="${x + 180}" y2="${sigY + 46}" stroke="#334155" stroke-width="1.2"/>`);
+      if (name) {
+        parts.push(`<text x="${x + 90}" y="${sigY + 62}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#0f172a">${escapeSvgText(name)}</text>`);
+      }
+    });
+
+    // Alt footer
+    parts.push(`<text x="${W / 2}" y="${H - 14}" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8">Bu belge e-key CRM sistemi tarafından oluşturulmuştur.</text>`);
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${parts.join("")}</svg>`;
+  }
+
   async function exportGenericContractPdf({ fileName, title, subtitle = "", rows = [], footer = "", signerLeft = "", signerMiddle = "", signerRight = "", signerLeftLabel = "Mülk Sahibi", signerMiddleLabel = "Emlakçı", signerRightLabel = "İmza" }) {
     try {
-      const pdf = new jsPDF({ unit: "mm", format: "a4" });
-      const pageW = 210;
-      const marginL = 15;
-      const marginR = 15;
-      const contentW = pageW - marginL - marginR;
-
-      // ── ARKA PLAN ──
-      pdf.setFillColor(248, 250, 255);
-      pdf.rect(0, 0, pageW, 297, "F");
-      pdf.setFillColor(255, 255, 255);
-      pdf.roundedRect(marginL - 4, 8, contentW + 8, 281, 4, 4, "F");
-
-      // ── ÜST ÇERÇEVE ÇİZGİSİ ──
-      pdf.setDrawColor(37, 99, 235);
-      pdf.setLineWidth(1.2);
-      pdf.line(marginL - 4, 8, marginL - 4 + contentW + 8, 8);
-      pdf.setLineWidth(0.3);
-      pdf.setDrawColor(200, 210, 230);
-
-      let y = 16;
-
-      // ── LOGO ──
-      if (officeProfile.logoDataUrl) {
-        try {
-          const fmt = officeProfile.logoDataUrl.includes("image/png") ? "PNG" : "JPEG";
-          pdf.addImage(officeProfile.logoDataUrl, fmt, marginL, y, 18, 18);
-        } catch (e) { /* logo eklenemedi */ }
-      }
-
-      // ── OFİS BİLGİLERİ ──
-      const hasLogo = !!officeProfile.logoDataUrl;
-      const infoX = hasLogo ? marginL + 22 : marginL;
-      const officeName = officeProfile.officeName || "e-key Emlak";
-      pdf.setFontSize(13);
-      pdf.setFont(undefined, "bold");
-      pdf.setTextColor(15, 23, 42);
-      pdf.text(safePdfText(officeName), infoX, y + 5);
-
-      pdf.setFontSize(8.5);
-      pdf.setFont(undefined, "normal");
-      pdf.setTextColor(100, 116, 139);
-      const officeDetails = [
-        officeProfile.agentName ? `Danisман: ${officeProfile.agentName}` : "",
-        officeProfile.phone ? `Tel: ${officeProfile.phone}` : "",
-        officeProfile.email ? officeProfile.email : "",
-        officeProfile.address ? officeProfile.address : "",
-      ].filter(Boolean);
-      let detailY = y + 10;
-      officeDetails.forEach((line) => {
-        pdf.text(safePdfText(line), infoX, detailY);
-        detailY += 4.5;
-      });
-
-      // Sağ üst: Sözleşme no ve tarih
       const contractNoRow = rows.find(([l]) => l === "Sözleşme No");
       const contractDateRow = rows.find(([l]) => l === "Sözleşme Tarihi");
-      if (contractNoRow || contractDateRow) {
-        pdf.setFontSize(8.5);
-        pdf.setTextColor(100, 116, 139);
-        if (contractNoRow) {
-          pdf.text(`No: ${safePdfText(contractNoRow[1])}`, pageW - marginR, y + 5, { align: "right" });
-        }
-        if (contractDateRow) {
-          pdf.text(`Tarih: ${safePdfText(contractDateRow[1])}`, pageW - marginR, y + 10, { align: "right" });
-        }
-      }
-
-      y = Math.max(y + 26, detailY + 4);
-
-      // ── AYIRICI ──
-      pdf.setDrawColor(37, 99, 235);
-      pdf.setLineWidth(0.6);
-      pdf.line(marginL, y, pageW - marginR, y);
-      y += 7;
-
-      // ── BAŞLIK ──
-      pdf.setFontSize(16);
-      pdf.setFont(undefined, "bold");
-      pdf.setTextColor(15, 23, 42);
-      pdf.text(safePdfText(title).toUpperCase(), pageW / 2, y, { align: "center" });
-      y += 4;
-      if (subtitle) {
-        pdf.setFontSize(9);
-        pdf.setFont(undefined, "normal");
-        pdf.setTextColor(100, 116, 139);
-        pdf.text(safePdfText(subtitle), pageW / 2, y + 4, { align: "center" });
-        y += 8;
-      }
-      y += 6;
-
-      // ── TABLO ──
-      const labelColW = 58;
-      const valueColW = contentW - labelColW;
-      const rowH = 9;
-      const skipRows = ["Sözleşme No", "Sözleşme Tarihi"];
-
-      rows.filter(([l]) => !skipRows.includes(l)).forEach(([label, value], index) => {
-        const isEven = index % 2 === 0;
-        if (isEven) {
-          pdf.setFillColor(245, 248, 255);
-        } else {
-          pdf.setFillColor(255, 255, 255);
-        }
-        pdf.rect(marginL, y, labelColW, rowH, "F");
-        pdf.rect(marginL + labelColW, y, valueColW, rowH, "F");
-
-        pdf.setDrawColor(220, 228, 240);
-        pdf.setLineWidth(0.25);
-        pdf.rect(marginL, y, contentW, rowH, "S");
-        pdf.line(marginL + labelColW, y, marginL + labelColW, y + rowH);
-
-        pdf.setFontSize(9);
-        pdf.setFont(undefined, "bold");
-        pdf.setTextColor(71, 85, 105);
-        pdf.text(safePdfText(label), marginL + 3, y + 6);
-
-        pdf.setFont(undefined, "normal");
-        pdf.setTextColor(15, 23, 42);
-        const valStr = safePdfText(String(value || "-"));
-        const wrapped = pdf.splitTextToSize(valStr, valueColW - 6);
-        if (wrapped.length > 1) {
-          pdf.setFontSize(8);
-          pdf.text(wrapped[0] + "...", marginL + labelColW + 3, y + 6);
-        } else {
-          pdf.text(valStr, marginL + labelColW + 3, y + 6);
-        }
-        y += rowH;
+      const svg = buildGenericContractSvg({
+        title,
+        subtitle,
+        rows,
+        footer,
+        contractNo: contractNoRow ? contractNoRow[1] : "",
+        contractDate: contractDateRow ? contractDateRow[1] : "",
+        signerLeftLabel,
+        signerLeft,
+        signerMiddleLabel,
+        signerMiddle,
+        signerRightLabel,
+        signerRight,
       });
-
-      // ── NOT ALANI ──
-      if (footer) {
-        y += 5;
-        pdf.setFillColor(255, 248, 230);
-        pdf.setDrawColor(217, 119, 6);
-        pdf.setLineWidth(0.3);
-        const footerLines = pdf.splitTextToSize(safePdfText(footer), contentW - 20);
-        const footerBoxH = footerLines.length * 5 + 10;
-        pdf.roundedRect(marginL, y, contentW, footerBoxH, 2, 2, "FD");
-        pdf.setFontSize(8.5);
-        pdf.setFont(undefined, "bold");
-        pdf.setTextColor(146, 64, 14);
-        pdf.text("Not:", marginL + 4, y + 6);
-        pdf.setFont(undefined, "normal");
-        pdf.text(footerLines, marginL + 14, y + 6);
-        y += footerBoxH + 6;
-      }
-
-      // ── İMZA ALANI ──
-      const signY = Math.max(y + 10, 240);
-      pdf.setDrawColor(200, 210, 230);
-      pdf.setLineWidth(0.3);
-      pdf.line(marginL, signY - 1, pageW - marginR, signY - 1);
-
-      const col1X = marginL + 8;
-      const col2X = pageW / 2 - 20;
-      const col3X = pageW - marginR - 48;
-
-      [[col1X, signerLeftLabel, signerLeft], [col2X, signerMiddleLabel, signerMiddle], [col3X, signerRightLabel, signerRight]].forEach(([x, roleLabel, name]) => {
-        pdf.setFontSize(8.5);
-        pdf.setFont(undefined, "bold");
-        pdf.setTextColor(100, 116, 139);
-        pdf.text(safePdfText(String(roleLabel)), x, signY + 5);
-        pdf.setDrawColor(71, 85, 105);
-        pdf.setLineWidth(0.5);
-        pdf.line(x, signY + 18, x + 42, signY + 18);
-        if (name) {
-          pdf.setFontSize(9);
-          pdf.setFont(undefined, "normal");
-          pdf.setTextColor(15, 23, 42);
-          pdf.text(safePdfText(String(name)), x, signY + 24);
-        }
-      });
-
-      // ── ALT FOOTER ──
-      pdf.setFontSize(7.5);
-      pdf.setFont(undefined, "normal");
-      pdf.setTextColor(148, 163, 184);
-      pdf.text("Bu belge e-key CRM sistemi tarafindan olusturulmustur.", pageW / 2, 291, { align: "center" });
-
+      const pdf = new jsPDF({ unit: "mm", format: "a4" });
+      await renderSvgPageToPdf(pdf, svg);
       pdf.save(fileName);
     } catch (e) {
-      alert("PDF hatasi: " + e.message);
+      alert("PDF hatası: " + e.message);
     }
   }
 
