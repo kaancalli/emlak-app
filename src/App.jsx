@@ -101,6 +101,36 @@ const emptyContract = () => ({
 });
 
 
+const DEFAULT_YETKI_TERMS = `1. Mülk sahibi, satış/kiralama yetkisini münhasıran bu sözleşmede belirtilen emlak ofisine vermiştir.
+2. Yetki süresi boyunca başka bir aracı kurum veya kişiyle işlem yapılamaz.
+3. Emlak ofisi, mülkü ilan sitelerinde ve kendi kanallarında tanıtma hakkına sahiptir.
+4. Satış/kiralama gerçekleştiğinde, belirtilen komisyon oranı peşin olarak ödenecektir.
+5. Sözleşme süresi dolmadan mülk sahibi tarafından feshedilmesi halinde, o güne kadar yapılan masraflar talep edilebilir.
+6. Taraflar arasındaki uyuşmazlıklarda sözleşmenin imzalandığı yer mahkemeleri yetkilidir.`;
+
+const DEFAULT_SATIS_TERMS = `1. Satıcı, mülkün tüm yasal yükümlülüklerden ari olduğunu beyan ve taahhüt eder.
+2. Alıcı, belirlenen kapora bedelini sözleşme imzası ile birlikte öder; cayma halinde kapora iade edilmez.
+3. Satıcı caydığı takdirde aldığı kaporanın iki katını alıcıya iade eder.
+4. Tapu devri, tüm ödemelerin tamamlanmasının ardından gerçekleştirilir.
+5. Tapu harcı ve ilgili masraflar yasal oranlarda taraflarca paylaşılır.
+6. Emlak komisyonu, tapu devri gerçekleştiğinde belirlenen oran üzerinden ödenir.
+7. Bu sözleşmeden doğan uyuşmazlıklarda tarafların yerleşim yeri mahkemeleri yetkilidir.`;
+
+const DEFAULT_KIRA_TERMS = `1. Kiracı, kiralananı özenle kullanmak ve komşulara saygılı davranmak zorundadır.
+2. Kiralanan, yazılı izin alınmadan üçüncü kişilere devredilemez veya alt kiraya verilemez.
+3. Kira bedeli, her ayın belirlenen gününde eksiksiz ödenecektir; geç ödemelerde yasal faiz uygulanır.
+4. Kiracı, abonelik sözleşmelerini kendi adına yapacak ve sözleşme sonunda kapatacaktır.
+5. Kira artışı, Türkiye İstatistik Kurumu tarafından açıklanan TÜFE oranında yapılacaktır.
+6. Sözleşme sonunda kiralanan, teslim alındığı hâliyle iade edilecektir.
+7. Kiralananın mülkiyet vergisi kiralayana, kullanım vergisi ve harçlar kiracıya aittir.
+8. Bu sözleşmeden doğan uyuşmazlıklarda tarafların yerleşim yeri mahkemeleri yetkilidir.`;
+
+const emptyContractTemplates = () => ({
+  yetkiTerms: DEFAULT_YETKI_TERMS,
+  satisTerms: DEFAULT_SATIS_TERMS,
+  kiraTerms: DEFAULT_KIRA_TERMS,
+});
+
 const emptyOfficeProfile = () => ({
   officeName: "",
   agentName: "",
@@ -227,6 +257,9 @@ export default function App() {
   const [appointmentForm, setAppointmentForm] = useState(emptyAppointment());
   const [contractForm, setContractForm] = useState(emptyContract());
   const [officeProfile, setOfficeProfile] = useState(emptyOfficeProfile());
+  const [contractTemplates, setContractTemplates] = useState(emptyContractTemplates());
+  const [templateScanLoading, setTemplateScanLoading] = useState(false);
+  const [templateTab, setTemplateTab] = useState("yetki");
   const [saleAgreementForm, setSaleAgreementForm] = useState(emptySaleAgreement());
   const [rentAgreementForm, setRentAgreementForm] = useState(emptyRentAgreement());
 
@@ -276,6 +309,8 @@ export default function App() {
       if (savedOfficeProfile) setOfficeProfile({ ...emptyOfficeProfile(), ...JSON.parse(savedOfficeProfile) });
       if (savedSaleAgreement) setSaleAgreementForm({ ...emptySaleAgreement(), ...JSON.parse(savedSaleAgreement) });
       if (savedRentAgreement) setRentAgreementForm({ ...emptyRentAgreement(), ...JSON.parse(savedRentAgreement) });
+      const savedTemplates = localStorage.getItem(`ekey-contract-templates-${user.uid}`);
+      if (savedTemplates) setContractTemplates({ ...emptyContractTemplates(), ...JSON.parse(savedTemplates) });
     } catch (e) {
       console.warn("Yerel sözleşme ayarları okunamadı", e);
     }
@@ -287,10 +322,11 @@ export default function App() {
       localStorage.setItem(`ekey-office-profile-${user.uid}`, JSON.stringify(officeProfile));
       localStorage.setItem(`ekey-sale-agreement-${user.uid}`, JSON.stringify(saleAgreementForm));
       localStorage.setItem(`ekey-rent-agreement-${user.uid}`, JSON.stringify(rentAgreementForm));
+      localStorage.setItem(`ekey-contract-templates-${user.uid}`, JSON.stringify(contractTemplates));
     } catch (e) {
       console.warn("Yerel sözleşme ayarları yazılamadı", e);
     }
-  }, [user?.uid, officeProfile, saleAgreementForm, rentAgreementForm]);
+  }, [user?.uid, officeProfile, saleAgreementForm, rentAgreementForm, contractTemplates]);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -364,6 +400,7 @@ export default function App() {
     { key: "contracts", label: "Sözleşmeler", icon: "📄" },
     { key: "saleContracts", label: "Satış Sözleşmesi", icon: "🧾" },
     { key: "rentalContracts", label: "Kira Sözleşmesi", icon: "🏘️" },
+    { key: "settings", label: "Ayarlar", icon: "⚙️" },
   ];
 
   async function loadAll(uid) {
@@ -1737,7 +1774,36 @@ export default function App() {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${parts.join("")}</svg>`;
   }
 
-  async function exportGenericContractPdf({ fileName, title, subtitle = "", rows = [], footer = "", signerLeft = "", signerMiddle = "", signerRight = "", signerLeftLabel = "Mülk Sahibi", signerMiddleLabel = "Emlakçı", signerRightLabel = "İmza" }) {
+  function buildTermsPageSvg(termsText, title) {
+    const W = 794;
+    const H = 1123;
+    const mX = 36;
+    const usableW = W - mX * 2;
+    const parts = [];
+    parts.push(`<rect width="${W}" height="${H}" fill="#f8faff"/>`);
+    parts.push(`<rect x="0" y="0" width="${W}" height="56" fill="#1e3a8a"/>`);
+    parts.push(`<rect x="0" y="52" width="${W}" height="4" fill="#3b82f6"/>`);
+    const offName = officeProfile.officeName || "e-key Emlak";
+    parts.push(`<text x="${mX}" y="34" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#ffffff">${escapeSvgText(offName)}</text>`);
+    parts.push(`<text x="${W - mX}" y="34" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="rgba(255,255,255,0.75)">${escapeSvgText(title)}</text>`);
+    let y = 88;
+    parts.push(`<text x="${W / 2}" y="${y}" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#0f172a">GENEL ŞARTLAR VE KOŞULLAR</text>`);
+    parts.push(`<line x1="${W / 2 - 80}" y1="${y + 12}" x2="${W / 2 + 80}" y2="${y + 12}" stroke="#2563eb" stroke-width="2"/>`);
+    y += 40;
+    const lines = (termsText || "").split("\n").filter((l) => l.trim());
+    lines.forEach((line) => {
+      const wrapped = wrapSvgText(line.trim(), 88);
+      const isNumbered = /^\d+\./.test(line.trim());
+      const attr = `font-family="Arial, sans-serif" font-size="${isNumbered ? 12 : 11}" font-weight="${isNumbered ? "700" : "400"}" fill="${isNumbered ? "#0f172a" : "#334155"}"`;
+      parts.push(svgTextBlock(wrapped, mX + (isNumbered ? 0 : 12), y, 17, attr));
+      y += wrapped.length * 17 + 6;
+      if (y > H - 60) return;
+    });
+    parts.push(`<text x="${W / 2}" y="${H - 14}" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8">Bu belge e-key CRM sistemi tarafından oluşturulmuştur.</text>`);
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${parts.join("")}</svg>`;
+  }
+
+ fileName, title, subtitle = "", rows = [], footer = "", signerLeft = "", signerMiddle = "", signerRight = "", signerLeftLabel = "Mülk Sahibi", signerMiddleLabel = "Emlakçı", signerRightLabel = "İmza" }) {
     try {
       const contractNoRow = rows.find(([l]) => l === "Sözleşme No");
       const contractDateRow = rows.find(([l]) => l === "Sözleşme Tarihi");
@@ -1757,6 +1823,11 @@ export default function App() {
       });
       const pdf = new jsPDF({ unit: "mm", format: "a4" });
       await renderSvgPageToPdf(pdf, svg);
+      if (contractTemplates.yetkiTerms && contractTemplates.yetkiTerms.trim()) {
+        const termsSvg = buildTermsPageSvg(contractTemplates.yetkiTerms, title);
+        pdf.addPage();
+        await renderSvgPageToPdf(pdf, termsSvg);
+      }
       pdf.save(fileName);
     } catch (e) {
       alert("PDF hatası: " + e.message);
@@ -2051,7 +2122,7 @@ export default function App() {
     `.trim();
   }
 
-  async function exportTemplateRentAgreementPdf() {
+  async function exportTemplateRentAgreementPdf(customKiraTerms) {
     try {
       const pdf = new jsPDF({ unit: "mm", format: "a4" });
       const pageOneSvg = buildRentAgreementPageOneSvg();
@@ -2066,6 +2137,12 @@ export default function App() {
       await renderSvgPageToPdf(pdf, pageOneSvg);
       await renderSvgPageToPdf(pdf, pageTwoSvg, true);
       await renderSvgPageToPdf(pdf, pageThreeSvg, true);
+
+      if (customKiraTerms && customKiraTerms.trim()) {
+        const termsSvg = buildTermsPageSvg(customKiraTerms, "Kira Sözleşmesi — Ek Şartlar");
+        pdf.addPage();
+        await renderSvgPageToPdf(pdf, termsSvg);
+      }
 
       pdf.save(`kira-sozlesmesi-${rentAgreementForm.contractNo || todayStr}.pdf`);
     } catch (e) {
@@ -2120,7 +2197,7 @@ export default function App() {
   }
 
   async function exportRentAgreementPdf() {
-    await exportTemplateRentAgreementPdf();
+    await exportTemplateRentAgreementPdf(contractTemplates.kiraTerms);
   }
 
   function renderOfficeProfileSettings(title = "PDF / Ofis Bilgileri") {
@@ -2152,7 +2229,188 @@ export default function App() {
     );
   }
 
-  function renderSaleContracts() {
+  async function scanContractWithAI(file, contractType) {
+    if (!file) return;
+    setTemplateScanLoading(true);
+    try {
+      const base64Data = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(",")[1]);
+        r.onerror = () => rej(new Error("Dosya okunamadı"));
+        r.readAsDataURL(file);
+      });
+      const isImage = file.type.startsWith("image/");
+      const mediaType = isImage ? file.type : "application/pdf";
+      const typeLabel = contractType === "yetki" ? "Emlak Yetki Sözleşmesi" : contractType === "satis" ? "Satış Ön Protokolü" : "Kira Sözleşmesi";
+      const messages = [
+        {
+          role: "user",
+          content: [
+            {
+              type: isImage ? "image" : "document",
+              source: { type: "base64", media_type: mediaType, data: base64Data },
+            },
+            {
+              type: "text",
+              text: `Bu belge bir ${typeLabel} belgesidir. Belgedeki genel şartlar, özel koşullar ve maddeleri çıkar. Sadece numaralı maddeleri listele, her madde ayrı satırda olsun. Madde numarası ve içeriği şu formatta yaz: "1. [madde metni]". Belge başlığı, taraf bilgileri, fiyat gibi form alanlarını YAZMA, sadece genel hüküm ve şartları yaz. Yanıtı Türkçe ver.`,
+            },
+          ],
+        },
+      ];
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, messages }),
+      });
+      const data = await response.json();
+      const text = (data.content || []).map((b) => b.text || "").join("\n").trim();
+      if (!text) throw new Error("Maddeler çıkarılamadı");
+      if (contractType === "yetki") setContractTemplates((t) => ({ ...t, yetkiTerms: text }));
+      else if (contractType === "satis") setContractTemplates((t) => ({ ...t, satisTerms: text }));
+      else setContractTemplates((t) => ({ ...t, kiraTerms: text }));
+      alert("✅ Sözleşme maddeleri başarıyla tarandı! Aşağıdan inceleyip düzenleyebilirsiniz.");
+    } catch (e) {
+      alert("Tarama hatası: " + e.message);
+    } finally {
+      setTemplateScanLoading(false);
+    }
+  }
+
+  function renderSettings() {
+    const tabs = [
+      { key: "ofis", label: "🏢 Ofis Profili" },
+      { key: "yetki", label: "📄 Yetki Şablonu" },
+      { key: "satis", label: "🧾 Satış Şablonu" },
+      { key: "kira", label: "🏘️ Kira Şablonu" },
+    ];
+    const termKey = templateTab === "yetki" ? "yetkiTerms" : templateTab === "satis" ? "satisTerms" : "kiraTerms";
+    const defaultMap = { yetki: DEFAULT_YETKI_TERMS, satis: DEFAULT_SATIS_TERMS, kira: DEFAULT_KIRA_TERMS };
+    const typeLabel = templateTab === "yetki" ? "Yetki Sözleşmesi" : templateTab === "satis" ? "Satış Ön Protokolü" : "Kira Sözleşmesi";
+
+    return (
+      <div style={{ display: "grid", gap: 18 }}>
+        <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 24, padding: 20, boxShadow: colors.shadow }}>
+          {sectionTitle("⚙️ Ayarlar & Şablonlar", "Ofis bilgilerinizi ve sözleşme şablonlarınızı buradan yönetin.")}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+            {tabs.map((t) => (
+              <button key={t.key} onClick={() => setTemplateTab(t.key)} style={{
+                ...actionButton(false),
+                background: templateTab === t.key ? (dark ? "rgba(59,130,246,0.2)" : "rgba(37,99,235,0.1)") : colors.panel2,
+                border: templateTab === t.key ? `1.5px solid ${colors.primary}` : `1px solid ${colors.border}`,
+                color: templateTab === t.key ? colors.primary : colors.text,
+                fontWeight: templateTab === t.key ? 900 : 700,
+                fontSize: 13,
+              }}>{t.label}</button>
+            ))}
+          </div>
+        </div>
+
+        {templateTab === "ofis" && (
+          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 24, padding: 20, boxShadow: colors.shadow }}>
+            {sectionTitle("Ofis Profili", "Tüm PDF çıktılarında kullanılacak ofis ve danışman bilgileriniz.")}
+            <div style={grid()}>
+              {renderTextInput({ label: "Ofis / Şirket Adı", value: officeProfile.officeName, onChange: (v) => setOfficeProfile({ ...officeProfile, officeName: v }) })}
+              {renderTextInput({ label: "Danışman Adı", value: officeProfile.agentName, onChange: (v) => setOfficeProfile({ ...officeProfile, agentName: v }) })}
+              {renderTextInput({ label: "Telefon", value: officeProfile.phone, onChange: (v) => setOfficeProfile({ ...officeProfile, phone: v }) })}
+              {renderTextInput({ label: "E-posta", value: officeProfile.email, onChange: (v) => setOfficeProfile({ ...officeProfile, email: v }) })}
+              {renderTextInput({ label: "Website", value: officeProfile.website, onChange: (v) => setOfficeProfile({ ...officeProfile, website: v }) })}
+              {renderTextInput({ label: "Şehir", value: officeProfile.city, onChange: (v) => setOfficeProfile({ ...officeProfile, city: v }) })}
+              {renderTextInput({ label: "Vergi Dairesi", value: officeProfile.taxOffice, onChange: (v) => setOfficeProfile({ ...officeProfile, taxOffice: v }) })}
+              {renderTextInput({ label: "Vergi No", value: officeProfile.taxNo, onChange: (v) => setOfficeProfile({ ...officeProfile, taxNo: v }) })}
+            </div>
+            <div style={{ marginTop: 12 }}>{renderTextarea({ label: "Adres", value: officeProfile.address, onChange: (v) => setOfficeProfile({ ...officeProfile, address: v }) })}</div>
+            <div style={{ marginTop: 16, display: "grid", gap: 10 }}>
+              <span style={{ fontWeight: 800, fontSize: 13, color: colors.sub }}>Logo (PDF çıktılarında görünür)</span>
+              <input type="file" accept="image/*" onChange={(e) => handleOfficeLogoUpload(e.target.files?.[0])} style={{ color: colors.text }} />
+              {officeProfile.logoDataUrl ? (
+                <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                  <img src={officeProfile.logoDataUrl} alt="logo" style={{ width: 72, height: 72, objectFit: "contain", borderRadius: 14, border: `1px solid ${colors.border}`, background: colors.panel2, padding: 6 }} />
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 13 }}>{officeProfile.logoName || "Logo yüklendi"}</div>
+                    <button onClick={() => setOfficeProfile({ ...officeProfile, logoDataUrl: "", logoName: "" })} style={{ ...actionButton(false, { fontSize: 12, marginTop: 6 }), color: colors.danger }}>Logoyu Kaldır</button>
+                  </div>
+                </div>
+              ) : <div style={{ color: colors.sub, fontSize: 13, padding: "10px 14px", background: colors.panel2, borderRadius: 12 }}>Henüz logo yüklenmedi. Logo tüm PDF çıktılarında sol üstte görünür.</div>}
+            </div>
+            <div style={{ marginTop: 14, padding: "12px 16px", background: colors.primarySoft, borderRadius: 14, border: `1px solid ${dark ? "rgba(96,165,250,0.2)" : "rgba(37,99,235,0.15)"}`, fontSize: 13, color: colors.primary }}>
+              ✅ Bilgileriniz otomatik kaydedilmektedir. Tüm sözleşme PDF çıktılarında bu bilgiler kullanılır.
+            </div>
+          </div>
+        )}
+
+        {templateTab !== "ofis" && (
+          <div style={{ display: "grid", gap: 16 }}>
+            <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 24, padding: 20, boxShadow: colors.shadow }}>
+              {sectionTitle(`${typeLabel} — Mevcut Sözleşme Tara`, "Kullandığınız sözleşmeyi yükleyin, yapay zeka maddeleri otomatik çıkarsın.")}
+              <div style={{ display: "grid", gap: 12 }}>
+                <div style={{ padding: "14px 16px", background: colors.panel2, borderRadius: 16, border: `1px solid ${colors.border}`, fontSize: 13, lineHeight: 1.7, color: colors.sub }}>
+                  📎 <strong>Desteklenen formatlar:</strong> PDF, JPG, PNG<br />
+                  🤖 <strong>Yapay zeka</strong> sözleşmedeki genel şart ve hükümleri otomatik tanır<br />
+                  ✏️ Taranan maddeler aşağıdaki editöre aktarılır, dilediğiniz gibi düzenleyebilirsiniz
+                </div>
+                <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                  <input
+                    type="file"
+                    accept=".pdf,image/*"
+                    id={`scan-input-${templateTab}`}
+                    style={{ display: "none" }}
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) scanContractWithAI(f, templateTab); e.target.value = ""; }}
+                  />
+                  <button
+                    onClick={() => document.getElementById(`scan-input-${templateTab}`)?.click()}
+                    disabled={templateScanLoading}
+                    style={{ ...actionButton(true), opacity: templateScanLoading ? 0.65 : 1 }}
+                  >
+                    {templateScanLoading ? "⏳ Taranıyor..." : "📤 Sözleşme Yükle & Tara"}
+                  </button>
+                  {templateScanLoading && (
+                    <span style={{ color: colors.sub, fontSize: 13 }}>Yapay zeka maddeleri çıkarıyor, lütfen bekleyin...</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 24, padding: 20, boxShadow: colors.shadow }}>
+              {sectionTitle(`${typeLabel} — Şablon Düzenleyici`, "Bu maddeler PDF çıktısının son sayfasında 'Genel Şartlar' olarak görünür.")}
+              <textarea
+                value={contractTemplates[termKey] || ""}
+                onChange={(e) => setContractTemplates({ ...contractTemplates, [termKey]: e.target.value })}
+                rows={18}
+                style={{
+                  width: "100%",
+                  padding: "14px 16px",
+                  borderRadius: 16,
+                  border: `1.5px solid ${colors.border2}`,
+                  background: colors.panel2,
+                  color: colors.text,
+                  outline: "none",
+                  boxSizing: "border-box",
+                  fontSize: 13,
+                  lineHeight: 1.8,
+                  resize: "vertical",
+                  fontFamily: "Arial, sans-serif",
+                }}
+                placeholder={`${typeLabel} için genel şartları buraya yazın...\n\nÖrnek:\n1. Birinci madde metni\n2. İkinci madde metni`}
+              />
+              <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+                <button onClick={() => setContractTemplates({ ...contractTemplates, [termKey]: defaultMap[templateTab] })} style={actionButton(false, { fontSize: 13 })}>
+                  🔄 Varsayılana Döndür
+                </button>
+                <button onClick={() => setContractTemplates({ ...contractTemplates, [termKey]: "" })} style={{ ...actionButton(false, { fontSize: 13 }), color: colors.danger }}>
+                  🗑️ Temizle
+                </button>
+              </div>
+              <div style={{ marginTop: 12, padding: "10px 14px", background: colors.primarySoft, borderRadius: 12, border: `1px solid ${dark ? "rgba(96,165,250,0.2)" : "rgba(37,99,235,0.15)"}`, fontSize: 12, color: colors.primary, lineHeight: 1.6 }}>
+                ✅ Değişiklikler otomatik kaydedilir. PDF oluşturduğunuzda bu maddeler son sayfada görünür.
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+
     return (
       <div style={pageGrid(460)}>
         <div style={{ display: "grid", gap: 16 }}>
@@ -4285,6 +4543,9 @@ export default function App() {
         break;
       case "rentalContracts":
         tabContent = renderRentalContracts();
+        break;
+      case "settings":
+        tabContent = renderSettings();
         break;
       default:
         tabContent = renderDashboard();
