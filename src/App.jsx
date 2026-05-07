@@ -2412,6 +2412,10 @@ export default function App() {
 
   function renderSaleContracts() {
     return (
+      <div style={pageGrid(460)}>
+        <div style={{ display: "grid", gap: 16 }}>
+          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 24, padding: 18, boxShadow: colors.shadow }}>
+            {sectionTitle("Satış Sözleşme Paneli", "Satış sözleşmesini hızlı oluştur, PDF al ve WhatsApp ile paylaş.")}
             <div style={grid()}>
               {renderTextInput({ label: "Sözleşme No", value: saleAgreementForm.contractNo, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, contractNo: v }) })}
               {renderTextInput({ label: "Sözleşme Tarihi", value: saleAgreementForm.contractDate, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, contractDate: v }), type: "date" })}
