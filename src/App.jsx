@@ -2562,8 +2562,8 @@ export default function App() {
 
   function renderTextInput({ label, value, onChange, placeholder = "", type = "text" }) {
     return (
-      <label style={{ display: "grid", gap: 8 }}>
-        <span style={{ fontWeight: 800, fontSize: 13, color: colors.sub }}>{label}</span>
+      <label style={{ display: "grid", gap: 6 }}>
+        <span style={{ fontWeight: 800, fontSize: 11, color: colors.sub, textTransform: "uppercase", letterSpacing: "0.07em" }}>{label}</span>
         <input
           type={type}
           value={value ?? ""}
@@ -2571,14 +2571,15 @@ export default function App() {
           onChange={(e) => onChange(e.target.value)}
           style={{
             width: "100%",
-            padding: "13px 15px",
-            borderRadius: 16,
-            border: `1px solid ${colors.border2}`,
+            padding: "10px 13px",
+            borderRadius: 10,
+            border: `1.5px solid ${colors.border2}`,
             background: colors.panel2,
             color: colors.text,
             outline: "none",
             boxSizing: "border-box",
             fontSize: 14,
+            fontFamily: "Arial, sans-serif",
           }}
         />
       </label>
@@ -2587,21 +2588,22 @@ export default function App() {
 
   function renderSelect({ label, value, onChange, options }) {
     return (
-      <label style={{ display: "grid", gap: 8 }}>
-        <span style={{ fontWeight: 800, fontSize: 13, color: colors.sub }}>{label}</span>
+      <label style={{ display: "grid", gap: 6 }}>
+        <span style={{ fontWeight: 800, fontSize: 11, color: colors.sub, textTransform: "uppercase", letterSpacing: "0.07em" }}>{label}</span>
         <select
           value={value ?? ""}
           onChange={(e) => onChange(e.target.value)}
           style={{
             width: "100%",
-            padding: "13px 15px",
-            borderRadius: 16,
-            border: `1px solid ${colors.border2}`,
+            padding: "10px 13px",
+            borderRadius: 10,
+            border: `1.5px solid ${colors.border2}`,
             background: colors.panel2,
             color: colors.text,
             outline: "none",
             boxSizing: "border-box",
             fontSize: 14,
+            fontFamily: "Arial, sans-serif",
           }}
         >
           {options.map((opt) => {
@@ -2625,25 +2627,26 @@ export default function App() {
 
   function renderTextarea({ label, value, onChange, placeholder = "" }) {
     return (
-      <label style={{ display: "grid", gap: 8 }}>
-        <span style={{ fontWeight: 800, fontSize: 13, color: colors.sub }}>{label}</span>
+      <label style={{ display: "grid", gap: 6 }}>
+        <span style={{ fontWeight: 800, fontSize: 11, color: colors.sub, textTransform: "uppercase", letterSpacing: "0.07em" }}>{label}</span>
         <textarea
           value={value ?? ""}
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
           style={{
             width: "100%",
-            padding: "13px 15px",
-            borderRadius: 16,
-            border: `1px solid ${colors.border2}`,
+            padding: "10px 13px",
+            borderRadius: 10,
+            border: `1.5px solid ${colors.border2}`,
             background: colors.panel2,
             color: colors.text,
             outline: "none",
             boxSizing: "border-box",
             fontSize: 14,
-            minHeight: 110,
+            minHeight: 100,
             resize: "vertical",
             fontFamily: "Arial, sans-serif",
+            lineHeight: 1.6,
           }}
         />
       </label>
@@ -2652,37 +2655,26 @@ export default function App() {
 
   function renderEmpty(title, text = "") {
     return (
-      <div
-        style={{
-          background: colors.panel2,
-          border: `1px solid ${colors.border}`,
-          borderRadius: 22,
-          padding: 28,
-          display: "grid",
-          placeItems: "center",
-          textAlign: "center",
-          minHeight: 180,
-          boxShadow: `${colors.shadowSoft}, ${colors.ring}`,
-        }}
-      >
-        <div style={{ maxWidth: 360 }}>
-          <div
-            style={{
-              width: 60,
-              height: 60,
-              borderRadius: 20,
-              margin: "0 auto 14px",
-              display: "grid",
-              placeItems: "center",
-              fontSize: 26,
-              background: `linear-gradient(135deg, ${colors.primarySoft} 0%, ${colors.panel3} 100%)`,
-              border: `1px solid ${colors.border}`,
-            }}
-          >
-            ✨
-          </div>
-          <div style={{ fontWeight: 900, fontSize: 18 }}>{title}</div>
-          <div style={{ color: colors.sub, marginTop: 8, lineHeight: 1.6 }}>
+      <div style={{
+        padding: "32px 20px",
+        display: "grid",
+        placeItems: "center",
+        textAlign: "center",
+        borderRadius: 14,
+        border: `1.5px dashed ${colors.border2}`,
+        background: colors.panel2,
+      }}>
+        <div style={{ maxWidth: 300 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 14,
+            margin: "0 auto 12px",
+            display: "grid", placeItems: "center",
+            fontSize: 20,
+            background: colors.primarySoft,
+            color: colors.primary,
+          }}>📭</div>
+          <div style={{ fontWeight: 900, fontSize: 15 }}>{title}</div>
+          <div style={{ color: colors.sub, marginTop: 6, lineHeight: 1.6, fontSize: 13 }}>
             {text || "Burada henüz görüntülenecek kayıt yok."}
           </div>
         </div>
@@ -2695,40 +2687,72 @@ export default function App() {
       background: primary
         ? `linear-gradient(135deg, ${colors.primary} 0%, ${dark ? "#3b82f6" : "#1d4ed8"} 100%)`
         : colors.panel2,
-      color: primary ? colors.primaryText : colors.text,
-      border: primary ? "none" : `1px solid ${colors.border2}`,
-      borderRadius: 18,
-      padding: "12px 16px",
+      color: primary ? "#ffffff" : colors.text,
+      border: primary ? "none" : `1.5px solid ${colors.border2}`,
+      borderRadius: 10,
+      padding: "9px 15px",
       cursor: "pointer",
-      fontWeight: 900,
-      fontSize: 14,
+      fontWeight: 800,
+      fontSize: 13,
       letterSpacing: "0.01em",
       boxSizing: "border-box",
       minWidth: 0,
       maxWidth: "100%",
-      boxShadow: primary ? colors.shadowSoft : `${colors.shadowSoft}, ${colors.ring}`,
+      transition: "opacity 0.15s, transform 0.1s",
+      boxShadow: primary ? "0 2px 8px rgba(37,99,235,0.25)" : "none",
       ...extra,
     };
   }
 
-  function sectionTitle(text, subText = "") {
+  function sectionTitle(text, subText = "", icon = "") {
     return (
-      <div style={{ marginBottom: 18, display: "grid", gap: 8 }}>
+      <div style={{ marginBottom: 18, paddingBottom: 14, borderBottom: `1px solid ${colors.border}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span
-            style={{
-              width: 34,
-              height: 4,
-              borderRadius: 999,
-              background: `linear-gradient(90deg, ${colors.primary} 0%, ${dark ? "#38bdf8" : "#60a5fa"} 100%)`,
-            }}
-          />
-          <span style={{ color: colors.sub, fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-            e-key paneli
-          </span>
+          {icon && (
+            <div style={{
+              width: 34, height: 34, borderRadius: 9,
+              background: colors.primarySoft, color: colors.primary,
+              display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0,
+            }}>{icon}</div>
+          )}
+          <div>
+            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 900, lineHeight: 1.2 }}>{text}</h2>
+            {subText && <p style={{ margin: "3px 0 0", color: colors.sub, fontSize: 12, lineHeight: 1.5 }}>{subText}</p>}
+          </div>
         </div>
-        <h2 style={{ margin: 0, fontSize: 24, fontWeight: 900, lineHeight: 1.15 }}>{text}</h2>
-        {subText ? <p style={{ margin: 0, color: colors.sub, lineHeight: 1.7 }}>{subText}</p> : null}
+      </div>
+    );
+  }
+
+  function pageCard(children, extra = {}) {
+    return (
+      <div style={{
+        background: colors.panel,
+        border: `1px solid ${colors.border}`,
+        borderRadius: 18,
+        padding: isMobile ? 14 : 18,
+        boxShadow: colors.shadowSoft,
+        ...extra,
+      }}>
+        {children}
+      </div>
+    );
+  }
+
+  function listCard(children, active = false, onClick = null) {
+    return (
+      <div
+        onClick={onClick}
+        style={{
+          background: active ? (dark ? "rgba(37,99,235,0.1)" : "#eff6ff") : colors.panel2,
+          border: `1px solid ${active ? colors.primary : colors.border}`,
+          borderLeft: `3px solid ${active ? colors.primary : (dark ? "#334155" : "#cbd5e1")}`,
+          borderRadius: 12,
+          padding: "13px 15px",
+          cursor: onClick ? "pointer" : "default",
+        }}
+      >
+        {children}
       </div>
     );
   }
