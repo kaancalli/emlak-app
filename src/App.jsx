@@ -2448,17 +2448,40 @@ export default function App() {
           </div>
         </div>
         <div style={{ display: "grid", gap: 16 }}>
-          {renderOfficeProfileSettings("Satış PDF Ayarları")}
-          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 24, padding: 18, boxShadow: colors.shadow }}>
-            {sectionTitle("Satış Önizleme", "PDF ve WhatsApp çıktısında kullanılacak hızlı özet.")}
+          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 16, boxShadow: colors.shadowSoft }}>
+            {sectionTitle("Ofis Bilgileri", "PDF çıktısında görünecek ofis ve danışman bilgileri.")}
             <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ background: colors.panel2, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 14 }}><strong>{saleAgreementForm.propertyTitle || "Portföy başlığı"}</strong><div style={{ color: colors.sub, marginTop: 6 }}>{saleAgreementForm.propertyAddress || "Adres bilgisi"}</div></div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Satıcı</div><div style={{ fontWeight: 800, marginTop: 5 }}>{saleAgreementForm.sellerName || "-"}</div></div>
-                <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Alıcı</div><div style={{ fontWeight: 800, marginTop: 5 }}>{saleAgreementForm.buyerName || "-"}</div></div>
-                <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Satış Bedeli</div><div style={{ fontWeight: 800, marginTop: 5 }}>{formatCurrency(saleAgreementForm.salePrice)}</div></div>
-                <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Komisyon</div><div style={{ fontWeight: 800, marginTop: 5 }}>%{saleAgreementForm.commissionRate || "-"}</div></div>
+              <div style={{ padding: "12px 14px", background: colors.primarySoft, borderRadius: 12, border: `1px solid ${dark ? "rgba(96,165,250,0.2)" : "rgba(37,99,235,0.15)"}`, fontSize: 13, lineHeight: 1.6 }}>
+                <div style={{ fontWeight: 900, color: colors.primary, marginBottom: 4 }}>⚙️ Ofis bilgileriniz Ayarlar sekmesinden yönetilir</div>
+                <div style={{ color: colors.sub }}>Logo, ofis adı, danışman ve iletişim bilgilerinizi Ayarlar → Ofis Profili bölümünden güncelleyebilirsiniz.</div>
               </div>
+              {officeProfile.officeName && (
+                <div style={{ padding: "10px 14px", background: colors.panel2, borderRadius: 12, border: `1px solid ${colors.border}`, fontSize: 13 }}>
+                  <div style={{ fontWeight: 900 }}>{officeProfile.officeName}</div>
+                  {officeProfile.agentName && <div style={{ color: colors.sub, marginTop: 2 }}>Danışman: {officeProfile.agentName}</div>}
+                  {officeProfile.phone && <div style={{ color: colors.sub }}>Tel: {officeProfile.phone}</div>}
+                </div>
+              )}
+              <button onClick={() => setActiveTab("settings")} style={actionButton(false, { fontSize: 13 })}>⚙️ Ayarlara Git</button>
+            </div>
+          </div>
+          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 16, boxShadow: colors.shadowSoft }}>
+            {sectionTitle("Satış Önizleme", "PDF çıktısında kullanılacak özet.")}
+            <div style={{ display: "grid", gap: 8, fontSize: 13 }}>
+              <div style={{ fontWeight: 900, fontSize: 15 }}>{saleAgreementForm.propertyTitle || "Portföy başlığı"}</div>
+              <div style={{ color: colors.sub }}>{saleAgreementForm.propertyAddress || "Adres bilgisi"}</div>
+              <div style={{ height: 1, background: colors.border, margin: "4px 0" }} />
+              {[
+                ["Satıcı", saleAgreementForm.sellerName || "-"],
+                ["Alıcı", saleAgreementForm.buyerName || "-"],
+                ["Satış Bedeli", formatCurrency(saleAgreementForm.salePrice)],
+                ["Komisyon", `%${saleAgreementForm.commissionRate || "-"}`],
+              ].map(([label, value]) => (
+                <div key={label} style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                  <span style={{ color: colors.sub }}>{label}</span>
+                  <span style={{ fontWeight: 800 }}>{value}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -2530,29 +2553,48 @@ export default function App() {
           </div>
         </div>
         <div style={{ display: "grid", gap: 16 }}>
-          {renderOfficeProfileSettings("Kira PDF Ayarları")}
-          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 24, padding: 18, boxShadow: colors.shadow }}>
-            {sectionTitle("Kira Önizleme", "İlk sayfada görünecek temel alanların hızlı özeti.")}
+          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 16, boxShadow: colors.shadowSoft }}>
+            {sectionTitle("Ofis Bilgileri", "PDF çıktısında görünecek ofis ve danışman bilgileri.")}
             <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ background: colors.panel2, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 14 }}>
-                <strong>{rentAgreementForm.propertyTitle || values.cins || "Kiralanan başlığı"}</strong>
-                <div style={{ color: colors.sub, marginTop: 6 }}>{rentAgreementForm.propertyAddress || "Adres bilgisi"}</div>
-                <div style={{ color: colors.sub, marginTop: 6 }}>Mahalle: {values.mahalle} • Cadde/Sokak: {values.cadde} • No: {values.numara}</div>
+              <div style={{ padding: "12px 14px", background: colors.primarySoft, borderRadius: 12, border: `1px solid ${dark ? "rgba(96,165,250,0.2)" : "rgba(37,99,235,0.15)"}`, fontSize: 13, lineHeight: 1.6 }}>
+                <div style={{ fontWeight: 900, color: colors.primary, marginBottom: 4 }}>⚙️ Ofis bilgileriniz Ayarlar sekmesinden yönetilir</div>
+                <div style={{ color: colors.sub }}>Logo, ofis adı, danışman ve iletişim bilgilerinizi Ayarlar → Ofis Profili bölümünden güncelleyebilirsiniz.</div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
-                <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Kiraya Veren</div><div style={{ fontWeight: 800, marginTop: 5 }}>{rentAgreementForm.landlordName || "-"}</div></div>
-                <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Kiracı</div><div style={{ fontWeight: 800, marginTop: 5 }}>{rentAgreementForm.tenantName || "-"}</div></div>
-                <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Aylık / Yıllık Kira</div><div style={{ fontWeight: 800, marginTop: 5 }}>{formatCurrency(rentAgreementForm.monthlyRent)} • {values.yillikKira}</div></div>
-                <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Kira Süresi</div><div style={{ fontWeight: 800, marginTop: 5 }}>{values.kiraSuresi}</div></div>
-              </div>
-              <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}>
-                <div style={{ fontSize: 12, color: colors.sub }}>Ödeme Şekli</div>
-                <div style={{ fontWeight: 800, marginTop: 5 }}>{values.odemeSekli}</div>
-              </div>
-              <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}>
-                <div style={{ fontSize: 12, color: colors.sub }}>Demirbaşlar</div>
-                <div style={{ marginTop: 5, lineHeight: 1.6 }}>{rentAgreementForm.fixtures || "-"}</div>
-              </div>
+              {officeProfile.officeName && (
+                <div style={{ padding: "10px 14px", background: colors.panel2, borderRadius: 12, border: `1px solid ${colors.border}`, fontSize: 13 }}>
+                  <div style={{ fontWeight: 900 }}>{officeProfile.officeName}</div>
+                  {officeProfile.agentName && <div style={{ color: colors.sub, marginTop: 2 }}>Danışman: {officeProfile.agentName}</div>}
+                  {officeProfile.phone && <div style={{ color: colors.sub }}>Tel: {officeProfile.phone}</div>}
+                </div>
+              )}
+              <button onClick={() => setActiveTab("settings")} style={actionButton(false, { fontSize: 13 })}>⚙️ Ayarlara Git</button>
+            </div>
+          </div>
+          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 16, boxShadow: colors.shadowSoft }}>
+            {sectionTitle("Kira Önizleme", "İlk sayfada görünecek temel bilgiler.")}
+            <div style={{ display: "grid", gap: 8, fontSize: 13 }}>
+              <div style={{ fontWeight: 900, fontSize: 15 }}>{rentAgreementForm.propertyTitle || values.cins || "Kiralanan başlığı"}</div>
+              <div style={{ color: colors.sub }}>{rentAgreementForm.propertyAddress || "Adres bilgisi"}</div>
+              <div style={{ color: colors.sub, fontSize: 12 }}>Mahalle: {values.mahalle} • Cadde/Sokak: {values.cadde} • No: {values.numara}</div>
+              <div style={{ height: 1, background: colors.border, margin: "4px 0" }} />
+              {[
+                ["Kiraya Veren", rentAgreementForm.landlordName || "-"],
+                ["Kiracı", rentAgreementForm.tenantName || "-"],
+                ["Aylık Kira", formatCurrency(rentAgreementForm.monthlyRent)],
+                ["Kira Süresi", values.kiraSuresi],
+                ["Ödeme Şekli", values.odemeSekli],
+              ].map(([label, value]) => (
+                <div key={label} style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                  <span style={{ color: colors.sub }}>{label}</span>
+                  <span style={{ fontWeight: 800 }}>{value}</span>
+                </div>
+              ))}
+              {rentAgreementForm.fixtures && (
+                <div style={{ marginTop: 4, paddingTop: 8, borderTop: `1px solid ${colors.border}` }}>
+                  <span style={{ color: colors.sub, fontSize: 12 }}>Demirbaşlar: </span>
+                  <span style={{ fontSize: 12 }}>{rentAgreementForm.fixtures}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -3385,96 +3427,46 @@ export default function App() {
               ) : (
                 filteredCustomers.map((item) => {
                   const recommendedCount = getRecommendedPortfoliosForCustomer(item).length;
+                  const isActive = selectedCustomer?.id === item.id;
                   return (
                     <div
                       key={item.id}
                       style={{
-                        background: selectedCustomer?.id === item.id ? colors.primarySoft : colors.panel2,
-                        border: `1px solid ${selectedCustomer?.id === item.id ? colors.primary : colors.border}`,
-                        borderRadius: 18,
-                        padding: 16,
+                        background: isActive ? (dark ? "rgba(37,99,235,0.1)" : "#eff6ff") : colors.panel2,
+                        border: `1px solid ${isActive ? colors.primary : colors.border}`,
+                        borderLeft: `3px solid ${isActive ? colors.primary : (dark ? "#334155" : "#cbd5e1")}`,
+                        borderRadius: 14,
+                        padding: "14px 16px",
                       }}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 10,
-                          flexWrap: "wrap",
-                          alignItems: "flex-start",
-                        }}
-                      >
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
                         <div>
-                          <div style={{ fontWeight: 900, fontSize: 19 }}>{item.fullName}</div>
-                          <div style={{ color: colors.sub, marginTop: 6, fontSize: 14 }}>
-                            {item.phone} {item.email ? `• ${item.email}` : ""}
+                          <div style={{ fontWeight: 900, fontSize: 16 }}>{item.fullName}</div>
+                          <div style={{ color: colors.sub, marginTop: 4, fontSize: 13 }}>
+                            {item.phone}{item.email ? ` • ${item.email}` : ""}
                           </div>
                         </div>
-
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                           <span style={statusBadge(item.customerType)}>{item.customerType}</span>
                           {recommendedCount ? <span style={statusBadge("önerildi")}>{recommendedCount} öneri</span> : null}
                         </div>
                       </div>
 
-                      <div
-                        style={{
-                          marginTop: 14,
-                          display: "grid",
-                          gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0,1fr))",
-                          gap: 10,
-                        }}
-                      >
-                        <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}>
-                          <div style={{ fontSize: 12, color: colors.sub }}>Bölge</div>
-                          <div style={{ fontWeight: 800, marginTop: 5 }}>{item.interestedLocation || "-"}</div>
-                        </div>
-                        <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}>
-                          <div style={{ fontSize: 12, color: colors.sub }}>Mülk Tipi</div>
-                          <div style={{ fontWeight: 800, marginTop: 5 }}>{item.interestedPropertyType || "Serbest"}</div>
-                        </div>
-                        <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}>
-                          <div style={{ fontSize: 12, color: colors.sub }}>Bütçe</div>
-                          <div style={{ fontWeight: 800, marginTop: 5 }}>{formatCurrency(item.budgetMin)} - {formatCurrency(item.budgetMax || item.budgetMin)}</div>
-                        </div>
+                      <div style={{ marginTop: 10, display: "flex", gap: 16, flexWrap: "wrap", fontSize: 13 }}>
+                        <span><span style={{ color: colors.sub, fontWeight: 700 }}>Bölge: </span><span style={{ fontWeight: 800 }}>{item.interestedLocation || "-"}</span></span>
+                        <span><span style={{ color: colors.sub, fontWeight: 700 }}>Mülk: </span><span style={{ fontWeight: 800 }}>{item.interestedPropertyType || "Serbest"}</span></span>
+                        <span><span style={{ color: colors.sub, fontWeight: 700 }}>Bütçe: </span><span style={{ fontWeight: 800 }}>{formatCurrency(item.budgetMin)} – {formatCurrency(item.budgetMax || item.budgetMin)}</span></span>
                       </div>
 
                       {item.note ? (
-                        <div style={{ marginTop: 12, lineHeight: 1.6, color: colors.sub }}>{item.note}</div>
+                        <div style={{ marginTop: 8, fontSize: 12, color: colors.sub, lineHeight: 1.5, borderTop: `1px solid ${colors.border}`, paddingTop: 8 }}>{item.note}</div>
                       ) : null}
 
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
-                        <button onClick={() => startEditCustomer(item)} style={actionButton(false)}>
-                          Düzenle
-                        </button>
-                        <button onClick={() => openCustomerDetail(item)} style={actionButton(false)}>
-                          Detay
-                        </button>
-                        <button
-                          onClick={() =>
-                            shareOnWhatsApp(
-                              item.phone,
-                              `Merhaba ${item.fullName}, sizin için uygun portföyleri paylaşabilirim.`
-                            )
-                          }
-                          style={actionButton(false, {
-                            background: "#16a34a",
-                            color: "#ffffff",
-                            border: "none",
-                          })}
-                        >
-                          WhatsApp
-                        </button>
-                        <button
-                          onClick={() => removeItem("customers", item.id, setCustomers)}
-                          style={actionButton(false, {
-                            background: colors.dangerSoft,
-                            color: colors.danger,
-                            border: `1px solid ${dark ? "rgba(248,113,113,0.16)" : "#fecaca"}`,
-                          })}
-                        >
-                          Sil
-                        </button>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+                        <button onClick={() => startEditCustomer(item)} style={actionButton(false, { fontSize: 12, padding: "7px 12px" })}>Düzenle</button>
+                        <button onClick={() => openCustomerDetail(item)} style={actionButton(false, { fontSize: 12, padding: "7px 12px" })}>Detay</button>
+                        <button onClick={() => shareOnWhatsApp(item.phone, `Merhaba ${item.fullName}, sizin için uygun portföyleri paylaşabilirim.`)} style={actionButton(false, { fontSize: 12, padding: "7px 12px", background: "#16a34a", color: "#ffffff", border: "none" })}>WhatsApp</button>
+                        <button onClick={() => removeItem("customers", item.id, setCustomers)} style={actionButton(false, { fontSize: 12, padding: "7px 12px", background: colors.dangerSoft, color: colors.danger, border: `1px solid ${dark ? "rgba(248,113,113,0.2)" : "#fecaca"}` })}>Sil</button>
                       </div>
                     </div>
                   );
