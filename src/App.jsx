@@ -3987,30 +3987,43 @@ export default function App() {
                 {overdueList.length} adet gecikmiş randevu var. Öncelikli olarak müşteriye hatırlatma göndermen iyi olur.
               </div>
             ) : null}
-            <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-              {filteredAppointments.length === 0 ? renderEmpty("Randevu bulunamadı", "Henüz bu kriterlere uygun randevu yok.") : filteredAppointments.map((item) => (
-                <div key={item.id} style={{ background: colors.panel2, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 16 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-                    <div>
-                      <div style={{ fontWeight: 900, fontSize: 18 }}>{item.title}</div>
-                      <div style={{ color: colors.sub, marginTop: 6, fontSize: 14 }}>{formatLongDateTime(item.date, item.time)} • {item.location || "Konum yok"}</div>
+            <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
+              {filteredAppointments.length === 0 ? renderEmpty("Randevu bulunamadı", "Henüz bu kriterlere uygun randevu yok.") : filteredAppointments.map((item) => {
+                const status = getAppointmentVisualStatus(item);
+                const isOverdue = status === "gecikti" || status === "gecikmiş";
+                return (
+                  <div key={item.id} style={{
+                    background: colors.panel2,
+                    border: `1px solid ${isOverdue ? (dark ? "rgba(248,113,113,0.3)" : "#fecaca") : colors.border}`,
+                    borderLeft: `3px solid ${isOverdue ? colors.danger : status === "planlandı" ? colors.primary : status === "tamamlandı" ? colors.success : colors.warning}`,
+                    borderRadius: 14,
+                    padding: "14px 16px",
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
+                      <div>
+                        <div style={{ fontWeight: 900, fontSize: 15 }}>{item.title}</div>
+                        <div style={{ color: colors.sub, marginTop: 3, fontSize: 13 }}>
+                          📅 {formatLongDateTime(item.date, item.time)}{item.location ? ` • 📍 ${item.location}` : ""}
+                        </div>
+                      </div>
+                      <span style={statusBadge(status)}>{status}</span>
                     </div>
-                    <span style={statusBadge(getAppointmentVisualStatus(item))}>{getAppointmentVisualStatus(item)}</span>
+                    <div style={{ marginTop: 8, display: "flex", gap: 16, flexWrap: "wrap", fontSize: 13 }}>
+                      <span><span style={{ color: colors.sub }}>Müşteri: </span><span style={{ fontWeight: 800 }}>{getCustomerNameById(item.customerId)}</span></span>
+                      <span><span style={{ color: colors.sub }}>Portföy: </span><span style={{ fontWeight: 800 }}>{getPortfolioTitleById(item.portfolioId)}</span></span>
+                    </div>
+                    {item.note && <div style={{ marginTop: 6, fontSize: 12, color: colors.sub, borderTop: `1px solid ${colors.border}`, paddingTop: 6 }}>{item.note}</div>}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                      <button onClick={() => startEditAppointment(item)} style={actionButton(false, { fontSize: 12, padding: "7px 12px" })}>Düzenle</button>
+                      <button onClick={() => { const c = customers.find((c) => c.id === item.customerId); if (c) openCustomerDetail(c); }} style={actionButton(false, { fontSize: 12, padding: "7px 12px" })}>Müşteri</button>
+                      <button onClick={() => { const p = portfolios.find((p) => p.id === item.portfolioId); if (p) openPortfolioDetail(p); }} style={actionButton(false, { fontSize: 12, padding: "7px 12px" })}>Portföy</button>
+                      <button onClick={() => shareOnWhatsApp(customers.find((c) => c.id === item.customerId)?.phone, `Merhaba ${getCustomerNameById(item.customerId)}, ${formatLongDateTime(item.date, item.time)} tarihli randevumuzu hatırlatmak istedim.`)} style={actionButton(false, { fontSize: 12, padding: "7px 12px", background: "#16a34a", color: "#ffffff", border: "none" })}>💬 Hatırlatma</button>
+                      <button onClick={() => removeItem("appointments", item.id, setAppointments)} style={actionButton(false, { fontSize: 12, padding: "7px 12px", background: colors.dangerSoft, color: colors.danger, border: `1px solid ${dark ? "rgba(248,113,113,0.2)" : "#fecaca"}` })}>Sil</button>
+                    </div>
                   </div>
-                  <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
-                    <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Müşteri</div><div style={{ fontWeight: 800, marginTop: 5 }}>{getCustomerNameById(item.customerId)}</div></div>
-                    <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Portföy</div><div style={{ fontWeight: 800, marginTop: 5 }}>{getPortfolioTitleById(item.portfolioId)}</div></div>
-                  </div>
-                  {item.note ? <div style={{ marginTop: 12, lineHeight: 1.6 }}>{item.note}</div> : null}
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
-                    <button onClick={() => startEditAppointment(item)} style={actionButton(false)}>Düzenle</button>
-                    <button onClick={() => { const customer = customers.find((c) => c.id === item.customerId); if (customer) openCustomerDetail(customer); }} style={actionButton(false)}>Müşteri Aç</button>
-                    <button onClick={() => { const portfolio = portfolios.find((p) => p.id === item.portfolioId); if (portfolio) openPortfolioDetail(portfolio); }} style={actionButton(false)}>Portföy Aç</button>
-                    <button onClick={() => shareOnWhatsApp(customers.find((c) => c.id === item.customerId)?.phone, `Merhaba ${getCustomerNameById(item.customerId)}, ${formatLongDateTime(item.date, item.time)} tarihli randevumuzu hatırlatmak istedim.`)} style={actionButton(false, { background: "#16a34a", color: "#ffffff", border: "none" })}>Hatırlatma Gönder</button>
-                    <button onClick={() => removeItem("appointments", item.id, setAppointments)} style={actionButton(false, { background: colors.dangerSoft, color: colors.danger, border: `1px solid ${dark ? "rgba(248,113,113,0.16)" : "#fecaca"}` })}>Sil</button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
+            </div>
             </div>
           </div>
         </div>
@@ -4104,80 +4117,93 @@ export default function App() {
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 16 }}>
-          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 24, padding: 18, boxShadow: colors.shadow }}>
-            {sectionTitle("Sözleşme Sağlığı", "Bitiş, yenileme ve komisyon görünümünü tek ekranda takip et.")}
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, minmax(0, 1fr))", gap: 10 }}>
-              <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Aktif</div><div style={{ fontWeight: 900, fontSize: 22, marginTop: 6 }}>{activeContracts}</div></div>
-              <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Bugün Biten</div><div style={{ fontWeight: 900, fontSize: 22, marginTop: 6 }}>{expiringTodayCount}</div></div>
-              <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Süresi Dolan</div><div style={{ fontWeight: 900, fontSize: 22, marginTop: 6 }}>{expiredCount}</div></div>
-              <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Komisyon Potansiyeli</div><div style={{ fontWeight: 900, fontSize: 18, marginTop: 6 }}>{formatCurrency(contracts.reduce((sum, item) => sum + parsePrice(item.salePrice) * ((Number(item.commission || 0) || 0) / 100), 0))}</div></div>
+        <div style={{ display: "grid", gap: 14 }}>
+          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 16, boxShadow: colors.shadowSoft }}>
+            {sectionTitle("Sözleşme Sağlığı", "Bitiş, yenileme ve komisyon görünümü.")}
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, minmax(0, 1fr))", gap: 10, marginBottom: 14 }}>
+              {[
+                { label: "Aktif", value: activeContracts, color: colors.success, soft: colors.successSoft },
+                { label: "Bugün Biten", value: expiringTodayCount, color: colors.warning, soft: colors.warningSoft },
+                { label: "Süresi Dolan", value: expiredCount, color: colors.danger, soft: colors.dangerSoft },
+                { label: "Komisyon", value: formatCurrency(contracts.reduce((s, i) => s + parsePrice(i.salePrice) * ((Number(i.commission || 0)) / 100), 0)), color: colors.primary, soft: colors.primarySoft },
+              ].map(({ label, value, color, soft }) => (
+                <div key={label} style={{ background: soft, border: `1px solid ${dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"}`, borderRadius: 12, padding: "12px 14px", borderLeft: `3px solid ${color}` }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
+                  <div style={{ fontWeight: 900, fontSize: 20, marginTop: 6, color }}>{value}</div>
+                </div>
+              ))}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.15fr 0.85fr", gap: 12, marginTop: 14 }}>
-              <div style={{ background: colors.panel2, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 14 }}>
-                <div style={{ fontSize: 12, color: colors.sub }}>PDF / Ofis Bilgisi</div>
-                <div style={{ fontWeight: 900, fontSize: 18, marginTop: 6 }}>{getOfficeDisplayName()}</div>
-                <div style={{ color: colors.sub, marginTop: 8, lineHeight: 1.6 }}>{officeProfile.agentName || "Danışman bilgisi eklenmedi"} {officeProfile.phone ? `• ${officeProfile.phone}` : ""}</div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", paddingTop: 12, borderTop: `1px solid ${colors.border}` }}>
+              <div style={{ flex: 1, minWidth: 180, fontSize: 13 }}>
+                <span style={{ color: colors.sub }}>Ofis: </span>
+                <span style={{ fontWeight: 800 }}>{getOfficeDisplayName()}</span>
+                {officeProfile.agentName && <span style={{ color: colors.sub }}> • {officeProfile.agentName}</span>}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <button onClick={() => setActiveTab("saleContracts")} style={actionButton(false)}>Satış Paneli</button>
-                <button onClick={() => setActiveTab("rentalContracts")} style={actionButton(false)}>Kira Paneli</button>
-              </div>
+              <button onClick={() => setActiveTab("saleContracts")} style={actionButton(false, { fontSize: 12, padding: "7px 12px" })}>🧾 Satış Paneli</button>
+              <button onClick={() => setActiveTab("rentalContracts")} style={actionButton(false, { fontSize: 12, padding: "7px 12px" })}>🏘️ Kira Paneli</button>
             </div>
           </div>
-          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 24, padding: 18, boxShadow: colors.shadow }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
+
+          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 16, boxShadow: colors.shadowSoft }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: 24, fontWeight: 900 }}>Sözleşme Listesi</h2>
-                <p style={{ margin: "8px 0 0", color: colors.sub }}>Dışa aktar, filtrele ve kritik tarihleri kolayca takip et.</p>
+                <div style={{ fontWeight: 900, fontSize: 16 }}>Sözleşme Listesi</div>
+                <div style={{ color: colors.sub, fontSize: 12, marginTop: 2 }}>Dışa aktar, filtrele ve kritik tarihleri takip et.</div>
               </div>
-              <button onClick={handleExportContractsExcel} style={actionButton(false)}>Excel Dışa Aktar</button>
+              <button onClick={handleExportContractsExcel} style={actionButton(false, { fontSize: 12, padding: "7px 12px" })}>📊 Excel</button>
             </div>
             <div style={grid()}>
               {renderTextInput({ label: "Ara", value: contractSearch, onChange: setContractSearch, placeholder: "No, sahip, telefon, adres..." })}
               {renderSelect({ label: "Durum Filtre", value: contractStatusFilter, onChange: setContractStatusFilter, options: ["tümü", "aktif", "yakında bitecek", "bugün bitiyor", "süresi doldu", "iptal edildi"] })}
             </div>
-            <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
+            <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
               {filteredContracts.length === 0 ? renderEmpty("Sözleşme bulunamadı", "Henüz bu kriterlere uygun sözleşme yok.") : filteredContracts.map((item) => {
                 const daysRemaining = getDaysRemaining(item.endDate);
                 const totalDuration = item.startDate && item.endDate ? Math.max(1, Math.ceil((new Date(item.endDate) - new Date(item.startDate)) / (1000 * 60 * 60 * 24))) : 1;
                 const consumedDays = item.startDate ? Math.max(0, totalDuration - Math.max(daysRemaining || 0, 0)) : 0;
                 const progress = Math.max(0, Math.min(100, Math.round((consumedDays / totalDuration) * 100)));
+                const status = item.calculatedStatus;
+                const barColor = status === "aktif" ? colors.success : status === "yakında bitecek" || status === "bugün bitiyor" ? colors.warning : colors.danger;
                 return (
-                  <div key={item.id} style={{ background: colors.panel2, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 16 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
+                  <div key={item.id} style={{
+                    background: colors.panel2,
+                    border: `1px solid ${colors.border}`,
+                    borderLeft: `3px solid ${barColor}`,
+                    borderRadius: 14,
+                    padding: "14px 16px",
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
                       <div>
-                        <div style={{ fontWeight: 900, fontSize: 19 }}>{item.contractNo || "-"}</div>
-                        <div style={{ color: colors.sub, marginTop: 6, fontSize: 14 }}>{item.owner} • {item.phone}</div>
+                        <div style={{ fontWeight: 900, fontSize: 15 }}>{item.contractNo || "-"}</div>
+                        <div style={{ color: colors.sub, marginTop: 3, fontSize: 13 }}>{item.owner} {item.phone ? `• ${item.phone}` : ""}</div>
                       </div>
-                      <span style={statusBadge(item.calculatedStatus)}>{item.calculatedStatus}</span>
+                      <span style={statusBadge(status)}>{status}</span>
                     </div>
-                    <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, minmax(0,1fr))", gap: 10 }}>
-                      <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Şirket</div><div style={{ fontWeight: 800, marginTop: 5 }}>{item.companyName || "-"}</div></div>
-                      <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Emlakçı</div><div style={{ fontWeight: 800, marginTop: 5 }}>{item.agentName || "-"}</div></div>
-                      <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Satış Fiyatı</div><div style={{ fontWeight: 800, marginTop: 5 }}>{formatCurrency(item.salePrice)}</div></div>
-                      <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Komisyon</div><div style={{ fontWeight: 800, marginTop: 5 }}>%{item.commission || "-"}</div></div>
+                    <div style={{ marginTop: 8, display: "flex", gap: 16, flexWrap: "wrap", fontSize: 13 }}>
+                      <span><span style={{ color: colors.sub }}>Şirket: </span><span style={{ fontWeight: 800 }}>{item.companyName || "-"}</span></span>
+                      <span><span style={{ color: colors.sub }}>Fiyat: </span><span style={{ fontWeight: 800 }}>{formatCurrency(item.salePrice)}</span></span>
+                      <span><span style={{ color: colors.sub }}>Komisyon: </span><span style={{ fontWeight: 800 }}>%{item.commission || "-"}</span></span>
                     </div>
-                    <div style={{ marginTop: 14 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13, color: colors.sub, marginBottom: 6 }}>
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: colors.sub, marginBottom: 5 }}>
                         <span>{formatShortDate(item.startDate)} → {formatShortDate(item.endDate)}</span>
-                        <span>{daysRemaining == null ? "-" : `${daysRemaining} gün`}</span>
+                        <span style={{ fontWeight: 800, color: barColor }}>{daysRemaining == null ? "-" : `${daysRemaining} gün kaldı`}</span>
                       </div>
-                      <div style={{ height: 8, borderRadius: 999, background: colors.panel3, border: `1px solid ${colors.border}`, overflow: "hidden" }}>
-                        <div style={{ width: `${progress}%`, height: "100%", background: `linear-gradient(90deg, ${item.calculatedStatus === "aktif" ? colors.success : item.calculatedStatus === "yakında bitecek" || item.calculatedStatus === "bugün bitiyor" ? colors.warning : colors.danger} 0%, ${dark ? "#60a5fa" : "#93c5fd"} 100%)` }} />
+                      <div style={{ height: 6, borderRadius: 999, background: colors.panel3, overflow: "hidden" }}>
+                        <div style={{ width: `${progress}%`, height: "100%", background: barColor, borderRadius: 999 }} />
                       </div>
                     </div>
-                    {item.address ? <div style={{ marginTop: 12, lineHeight: 1.6 }}>{item.address}</div> : null}
-                    {item.note ? <div style={{ marginTop: 10, color: colors.sub }}>Not: {item.note}</div> : null}
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
-                      <button onClick={() => startEditContract(item)} style={actionButton(false)}>Düzenle</button>
-                      <button onClick={() => renewContractFromItem(item)} style={actionButton(false)}>Yenileme Taslağı</button>
-                      <button onClick={() => handleExportContractPdf(item)} style={actionButton(true)}>📥 PDF İndir</button>
-                      <button onClick={() => shareOnWhatsApp(item.phone, `Merhaba, ${getOfficeDisplayName()} ofisinden ${item.contractNo || "sözleşme"} numaralı yetki sözleşmenizi PDF olarak iletiyorum.`)} style={actionButton(false, { background: "#16a34a", color: "#ffffff", border: "none" })}>💬 WhatsApp Aç</button>
-                      <button onClick={() => removeItem("contracts", item.id, setContracts)} style={actionButton(false, { background: colors.dangerSoft, color: colors.danger, border: `1px solid ${dark ? "rgba(248,113,113,0.16)" : "#fecaca"}` })}>Sil</button>
+                    {item.address && <div style={{ marginTop: 8, fontSize: 12, color: colors.sub }}>{item.address}</div>}
+                    {item.note && <div style={{ marginTop: 4, fontSize: 12, color: colors.sub, fontStyle: "italic" }}>Not: {item.note}</div>}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+                      <button onClick={() => startEditContract(item)} style={actionButton(false, { fontSize: 12, padding: "7px 12px" })}>Düzenle</button>
+                      <button onClick={() => renewContractFromItem(item)} style={actionButton(false, { fontSize: 12, padding: "7px 12px" })}>Yenile</button>
+                      <button onClick={() => handleExportContractPdf(item)} style={actionButton(true, { fontSize: 12, padding: "7px 12px" })}>📥 PDF</button>
+                      <button onClick={() => shareOnWhatsApp(item.phone, `Merhaba, ${getOfficeDisplayName()} ofisinden ${item.contractNo || "sözleşme"} numaralı yetki sözleşmenizi PDF olarak iletiyorum.`)} style={actionButton(false, { fontSize: 12, padding: "7px 12px", background: "#16a34a", color: "#ffffff", border: "none" })}>💬 WhatsApp</button>
+                      <button onClick={() => removeItem("contracts", item.id, setContracts)} style={actionButton(false, { fontSize: 12, padding: "7px 12px", background: colors.dangerSoft, color: colors.danger, border: `1px solid ${dark ? "rgba(248,113,113,0.2)" : "#fecaca"}` })}>Sil</button>
                     </div>
-                    <div style={{ marginTop: 8, fontSize: 12, color: colors.sub, padding: "8px 12px", background: colors.panel3, borderRadius: 12, border: `1px solid ${colors.border}` }}>
-                      💡 Önce <strong>PDF İndir</strong> ile sözleşmeyi indirin, ardından <strong>WhatsApp Aç</strong> ile sohbeti başlatıp PDF'i paylaşın.
+                    <div style={{ marginTop: 8, fontSize: 11, color: colors.sub, padding: "6px 10px", background: colors.panel3, borderRadius: 8 }}>
+                      💡 PDF İndir → WhatsApp Aç → PDF'i paylaş
                     </div>
                   </div>
                 );
