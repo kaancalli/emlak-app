@@ -2851,262 +2851,149 @@ export default function App() {
   }
 
   function renderDashboard() {
-    const dashboardCard = (title, subText, children, extra = {}) => (
-      <div
-        style={{
-          background: colors.panel,
-          border: `1px solid ${colors.border}`,
-          borderRadius: 22,
-          padding: 16,
-          boxShadow: colors.shadowSoft,
-          ...extra,
-        }}
-      >
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 16, fontWeight: 900 }}>{title}</div>
-          {subText ? (
-            <div style={{ color: colors.sub, marginTop: 4, lineHeight: 1.55, fontSize: 12.5 }}>
-              {subText}
-            </div>
-          ) : null}
-        </div>
-        {children}
-      </div>
-    );
-
-    const stat = (icon, title, value, helper, accent) => {
-      const map = {
-        primary: { bg: colors.primarySoft, color: colors.primary },
-        success: { bg: colors.successSoft, color: colors.success },
-        warning: { bg: colors.warningSoft, color: colors.warning },
-        danger: { bg: colors.dangerSoft, color: colors.danger },
-      };
-      const style = map[accent] || map.primary;
-
-      return (
-        <div
-          style={{
-            background: colors.panel,
-            border: `1px solid ${colors.border}`,
-            borderRadius: 18,
-            padding: 14,
-            boxShadow: colors.shadowSoft,
-            minWidth: 0,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                width: 42,
-                height: 42,
-                borderRadius: 14,
-                background: style.bg,
-                color: style.color,
-                display: "grid",
-                placeItems: "center",
-                fontSize: 20,
-                fontWeight: 900,
-                flexShrink: 0,
-              }}
-            >
-              {icon}
-            </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ color: colors.sub, fontWeight: 700, fontSize: 12 }}>{title}</div>
-              <div style={{ fontSize: 24, fontWeight: 900, marginTop: 3, lineHeight: 1.1 }}>{value}</div>
-            </div>
-          </div>
-          <div style={{ color: colors.sub, marginTop: 10, lineHeight: 1.45, fontSize: 12 }}>{helper}</div>
-        </div>
-      );
-    };
-
-    const quickButton = (label, tab, emoji, primary = false) => (
-      <button
-        onClick={() => {
-          setActiveTab(tab);
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }}
-        style={actionButton(primary, {
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 10,
-          width: "100%",
-          textAlign: "left",
-          padding: "12px 14px",
-          minHeight: 50,
-        })}
-      >
-        <span style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
-          <span style={{ fontSize: 17, flexShrink: 0 }}>{emoji}</span>
-          <span style={{ fontSize: 13.5, fontWeight: 800 }}>{label}</span>
-        </span>
-        <span style={{ opacity: 0.8, flexShrink: 0 }}>→</span>
-      </button>
-    );
-
-    const miniMetric = (label, value, helper) => (
-      <div
-        style={{
-          background: colors.panel2,
-          border: `1px solid ${colors.border}`,
-          borderRadius: 16,
-          padding: 12,
-        }}
-      >
-        <div style={{ fontSize: 11.5, color: colors.sub }}>{label}</div>
-        <div style={{ fontWeight: 900, fontSize: 22, marginTop: 4, lineHeight: 1.1 }}>{value}</div>
-        <div style={{ color: colors.sub, fontSize: 12, marginTop: 4, lineHeight: 1.45 }}>{helper}</div>
-      </div>
-    );
-
-    const recentCustomers = customers
-      .slice()
-      .sort((a, b) => String(b.updatedAt || b.createdAt || "").localeCompare(String(a.updatedAt || a.createdAt || "")))
-      .slice(0, 3);
-
-    const highAttentionPortfolios = portfolios
-      .map((item) => ({
-        ...item,
-        matchCount: getPortfolioMatchCount(item.id),
-        appointmentCount: getPortfolioAppointmentCount(item.id),
-        daysActive: getPortfolioDaysActive(item),
-      }))
-      .sort((a, b) => {
-        const aScore = a.matchCount * 3 + a.appointmentCount * 2 + (a.status === "aktif" ? 1 : 0);
-        const bScore = b.matchCount * 3 + b.appointmentCount * 2 + (b.status === "aktif" ? 1 : 0);
-        if (bScore !== aScore) return bScore - aScore;
-        return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
-      })
-      .slice(0, 3);
-
-    const weekAppointments = getCurrentWeekDates().map((date) => {
-      const iso = date.toISOString().slice(0, 10);
-      return {
-        iso,
-        label: date.toLocaleDateString("tr-TR", { weekday: "short" }),
-        shortDay: date.toLocaleDateString("tr-TR", { day: "2-digit" }),
-        count: appointments.filter((item) => item.date === iso).length,
-        isToday: iso === todayStr,
-      };
-    });
-
-    const portfolioStatusSummary = [
-      { label: "Aktif", value: portfolios.filter((item) => item.status === "aktif").length },
-      { label: "Satıldı", value: portfolios.filter((item) => item.status === "satıldı").length },
-      { label: "Kiralandı", value: portfolios.filter((item) => item.status === "kiralandı").length },
-      { label: "Pasif", value: portfolios.filter((item) => item.status === "pasif").length },
-    ];
-
-    const focusText = expiringContracts > 0
-      ? `${expiringContracts} kritik sözleşme takip bekliyor.`
-      : todayAppointments > 0
-        ? `Bugün ${todayAppointments} randevu planlı görünüyor.`
-        : totalCustomers > 0
-          ? `Sistemde ${totalCustomers} müşteri ve ${totalPortfolios} portföy kayıtlı.`
-          : "İlk kayıtlarını ekleyerek paneli doldurmaya başlayabilirsin.";
+    const today = new Date();
+    const todayFormatted = today.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
     const portfolioFillRate = totalPortfolios > 0
       ? Math.min(100, Math.round((closedPortfolioCount / totalPortfolios) * 100))
       : 0;
 
+    const statCard = (icon, label, value, sub, accent) => {
+      const colors2 = {
+        primary: { bar: "#2563eb", soft: dark ? "rgba(37,99,235,0.15)" : "#eff6ff", text: "#2563eb" },
+        success: { bar: "#16a34a", soft: dark ? "rgba(22,163,74,0.15)" : "#f0fdf4", text: "#16a34a" },
+        warning: { bar: "#d97706", soft: dark ? "rgba(217,119,6,0.15)" : "#fffbeb", text: "#d97706" },
+        danger: { bar: "#dc2626", soft: dark ? "rgba(220,38,38,0.15)" : "#fef2f2", text: "#dc2626" },
+      };
+      const c = colors2[accent] || colors2.primary;
+      return (
+        <div style={{
+          background: colors.panel,
+          border: `1px solid ${colors.border}`,
+          borderRadius: 16,
+          padding: "16px 18px",
+          boxShadow: colors.shadowSoft,
+          borderLeft: `4px solid ${c.bar}`,
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          minWidth: 0,
+        }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12,
+            background: c.soft, color: c.text,
+            display: "grid", placeItems: "center",
+            fontSize: 20, flexShrink: 0,
+          }}>{icon}</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: colors.sub, textTransform: "uppercase", letterSpacing: "0.07em" }}>{label}</div>
+            <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1.1, marginTop: 2 }}>{value}</div>
+            <div style={{ fontSize: 11, color: colors.sub, marginTop: 3 }}>{sub}</div>
+          </div>
+        </div>
+      );
+    };
+
+    const metricCard = (label, value, sub) => (
+      <div style={{
+        background: colors.panel2,
+        border: `1px solid ${colors.border}`,
+        borderRadius: 14,
+        padding: "14px 16px",
+        textAlign: "center",
+      }}>
+        <div style={{ fontSize: 10, fontWeight: 800, color: colors.sub, textTransform: "uppercase", letterSpacing: "0.07em" }}>{label}</div>
+        <div style={{ fontSize: 22, fontWeight: 900, marginTop: 6, lineHeight: 1 }}>{value}</div>
+        <div style={{ fontSize: 11, color: colors.sub, marginTop: 5 }}>{sub}</div>
+      </div>
+    );
+
+    const officeName = officeProfile.officeName || officeProfile.agentName || "e-key";
+
     return (
-      <div style={{ display: "grid", gap: 12 }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.45fr) minmax(320px, 0.8fr)",
-            gap: 12,
-            alignItems: "stretch",
-          }}
-        >
-          <div
-            style={{
-              background: dark
-                ? "linear-gradient(135deg, rgba(37,99,235,0.20) 0%, rgba(15,23,42,0.92) 100%)"
-                : "linear-gradient(135deg, rgba(37,99,235,0.12) 0%, rgba(255,255,255,0.96) 100%)",
-              border: `1px solid ${colors.border}`,
-              borderRadius: 24,
-              padding: isMobile ? 18 : 20,
-              boxShadow: colors.shadowSoft,
-              overflow: "hidden",
-              position: "relative",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                right: -34,
-                top: -42,
-                width: 150,
-                height: 150,
-                borderRadius: "50%",
-                background: dark ? "rgba(96,165,250,0.12)" : "rgba(96,165,250,0.16)",
-                filter: "blur(4px)",
-              }}
-            />
+      <div style={{ display: "grid", gap: 14 }}>
 
-            <div style={{ position: "relative", display: "grid", gap: 14 }}>
-              <div style={{ maxWidth: 760 }}>
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "7px 11px",
-                    borderRadius: 999,
-                    background: colors.panel2,
-                    border: `1px solid ${colors.border}`,
-                    color: colors.sub,
-                    fontSize: 11.5,
-                    fontWeight: 900,
-                    letterSpacing: "0.03em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  e-key kontrol merkezi
-                </div>
-
-                <div style={{ marginTop: 12, fontSize: isMobile ? 25 : 30, fontWeight: 900, lineHeight: 1.1 }}>
-                  {officeProfile.officeName || officeProfile.agentName || "e-key"} paneline hoş geldin
-                </div>
-
-                <div style={{ marginTop: 9, color: colors.sub, lineHeight: 1.6, fontSize: 14 }}>
-                  {focusText}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, minmax(0, 1fr))",
-                  gap: 10,
-                }}
-              >
-                {miniMetric("Bugün", todayAppointments, "planlanan randevu")}
-                {miniMetric("Yaklaşan", upcomingAppointments, "takvim kaydı")}
-                {miniMetric("Kapanış oranı", `%${portfolioFillRate}`, `${closedPortfolioCount}/${totalPortfolios} portföy`) }
-                {miniMetric("Toplam değer", formatCurrency(totalPortfolioValue), "portföy toplamı")}
-              </div>
+        {/* HEADER */}
+        <div style={{
+          background: dark
+            ? "linear-gradient(135deg, #0f2744 0%, #1e3a5f 100%)"
+            : "linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%)",
+          borderRadius: 20,
+          padding: isMobile ? "20px 18px" : "22px 28px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 16,
+        }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.65)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              {todayFormatted}
             </div>
+            <div style={{ fontSize: isMobile ? 20 : 24, fontWeight: 900, color: "#ffffff", lineHeight: 1.2 }}>
+              Hoş geldiniz, {officeName} 👋
+            </div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", marginTop: 6 }}>
+              {expiringContracts > 0
+                ? `⚠️ ${expiringContracts} sözleşme takip bekliyor`
+                : todayAppointments > 0
+                  ? `📅 Bugün ${todayAppointments} randevu planlı`
+                  : `Sistemde ${totalCustomers} müşteri, ${totalPortfolios} portföy kayıtlı`}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {[
+              { label: "Müşteri Ekle", tab: "customers", icon: "👤" },
+              { label: "Portföy Ekle", tab: "portfolios", icon: "🏢" },
+              { label: "Randevu", tab: "appointments", icon: "📅" },
+            ].map(({ label, tab, icon }) => (
+              <button key={tab} onClick={() => setActiveTab(tab)} style={{
+                background: "rgba(255,255,255,0.15)",
+                border: "1px solid rgba(255,255,255,0.25)",
+                color: "#ffffff",
+                borderRadius: 12,
+                padding: "9px 14px",
+                fontSize: 13,
+                fontWeight: 800,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+                backdropFilter: "blur(8px)",
+              }}>
+                <span>{icon}</span>
+                <span>{label}</span>
+              </button>
+            ))}
           </div>
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(6, minmax(0, 1fr))",
-            gap: 10,
-          }}
-        >
-          {stat("👥", "Toplam müşteri", totalCustomers, "Tüm müşteri kayıtların", "primary")}
-          {stat("🏢", "Toplam portföy", totalPortfolios, "Aktif ve geçmiş portföyler", "success")}
-          {stat("📄", "Aktif sözleşme", activeContracts, "Devam eden sözleşmeler", "warning")}
-          {stat("🔗", "Eşleştirme", totalMatches, "Oluşturulan bağlantılar", "primary")}
-          {stat("📅", "Aylık randevu", appointmentThisMonth, "Bu ay takvime eklenenler", "success")}
-          {stat("⏰", "Kritik sözleşme", expiringContracts, "Takip bekleyen dosyalar", "danger")}
+        {/* 4 METRİK */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, minmax(0,1fr))",
+          gap: 12,
+        }}>
+          {metricCard("Bugünkü Randevu", todayAppointments, "planlanan")}
+          {metricCard("Yaklaşan", upcomingAppointments, "takvim kaydı")}
+          {metricCard("Kapanış Oranı", `%${portfolioFillRate}`, `${closedPortfolioCount}/${totalPortfolios} portföy`)}
+          {metricCard("Portföy Değeri", formatCurrency(totalPortfolioValue), "toplam")}
         </div>
+
+        {/* 6 İSTATİSTİK */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, minmax(0,1fr))",
+          gap: 12,
+        }}>
+          {statCard("👥", "Toplam Müşteri", totalCustomers, "Tüm müşteri kayıtları", "primary")}
+          {statCard("🏢", "Toplam Portföy", totalPortfolios, "Aktif ve geçmiş portföyler", "success")}
+          {statCard("📄", "Aktif Sözleşme", activeContracts, "Devam eden sözleşmeler", "warning")}
+          {statCard("🔗", "Eşleştirme", totalMatches, "Oluşturulan bağlantılar", "primary")}
+          {statCard("📅", "Aylık Randevu", appointmentThisMonth, "Bu ay eklenenler", "success")}
+          {statCard("⚠️", "Kritik Sözleşme", expiringContracts, "Takip bekleyen dosyalar", "danger")}
+        </div>
+
       </div>
     );
   }
@@ -4504,148 +4391,6 @@ export default function App() {
       </aside>
 
       <main style={{ padding: isMobile ? 10 : 16, minWidth: 0, overflowX: "hidden", width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
-        <div
-          style={{
-            background: colors.panel,
-            border: `1px solid ${colors.border}`,
-            borderRadius: 24,
-            padding: 18,
-            boxShadow: colors.shadow,
-            marginBottom: 18,
-          }}
-        >
-          <div
-  style={{
-    display: "grid",
-    gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.75fr) minmax(360px, 0.75fr)",
-    gap: isMobile ? 16 : 18,
-    alignItems: "start",
-  }}
->
-            <div>
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "8px 12px",
-                  borderRadius: 999,
-                  background: colors.primarySoft,
-                  color: colors.primary,
-                  fontWeight: 800,
-                  fontSize: 12,
-                  marginBottom: 14,
-                }}
-              >
-                ⚡ Profesyonel çalışma paneli
-              </div>
-
-             <h1
-  style={{
-    margin: 0,
-    fontSize: isMobile ? 28 : 34,
-    fontWeight: 900,
-    lineHeight: 1.12,
-    maxWidth: 780,
-  }}
->
-                e-key ile iş akışını tek yerden yönet
-              </h1>
-
-              <p style={{ margin: "10px 0 0", color: colors.sub, lineHeight: 1.7, maxWidth: "100%" }}>
-                Müşteri, portföy, sözleşme, eşleştirme ve randevularını modern ve düzenli bir
-                arayüzle takip et. Hızlı aksiyonlar, uyarılar ve canlı özetler tek ekranda.
-              </p>
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
-                <button onClick={() => setActiveTab("customers")} style={actionButton(false)}>
-                  Müşteri Ekle
-                </button>
-                <button onClick={() => setActiveTab("portfolios")} style={actionButton(false)}>
-                  Portföy Ekle
-                </button>
-                <button onClick={() => setActiveTab("contracts")} style={actionButton(false)}>
-                 ⚡  Hızlı Sözleşme
-                </button>
-              </div>
-            </div>
-
-<div
-  style={{
-    background: colors.panel2,
-    border: `1px solid ${colors.border}`,
-    borderRadius: 18,
-    padding: 16,
-    display: "grid",
-    gap: 10,
-    minHeight: "100%",
-    alignContent: "start",
-  }}
->
-              <div style={{ fontWeight: 900, fontSize: 16 }}>Bugün ve sıradaki işler</div>
-              <div style={{ color: colors.sub, lineHeight: 1.6, fontSize: 13 }}>
-                Yaklaşan randevuların ve sıradaki iş akışın burada görünür.
-              </div>
-
-              {dashboardAgendaItems.length === 0 ? (
-                <div
-                  style={{
-                    background: colors.panel3,
-                    border: `1px solid ${colors.border}`,
-                    borderRadius: 16,
-                    padding: 14,
-                    color: colors.sub,
-                    lineHeight: 1.6,
-                    fontSize: 13,
-                  }}
-                >
-                  Yeni bir randevu eklediğinde burada görünecek.
-                </div>
-              ) : (
-                <div style={{ display: "grid", gap: 8 }}>
-                  {dashboardAgendaItems.map((item) => (
-                    <div
-                      key={item.id}
-                      style={{
-                        background: colors.panel3,
-                        border: `1px solid ${colors.border}`,
-                        borderRadius: 16,
-                        padding: 12,
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 10,
-                          alignItems: "flex-start",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontWeight: 900, fontSize: 13.5 }}>{item.title || "Randevu"}</div>
-                          <div style={{ color: colors.sub, marginTop: 4, fontSize: 12, lineHeight: 1.45 }}>
-                            {formatShortDate(item.date)} {item.time || "-"} • {getCustomerNameById(item.customerId)}
-                          </div>
-                          <div style={{ color: colors.sub, marginTop: 2, fontSize: 12 }}>
-                            {getPortfolioTitleById(item.portfolioId)}
-                          </div>
-                          {item.location ? (
-                            <div style={{ color: colors.sub, marginTop: 2, fontSize: 12 }}>
-                              Konum: {item.location}
-                            </div>
-                          ) : null}
-                        </div>
-                        <span style={statusBadge(item.visualStatus)}>{item.visualStatus}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
         {tabContent}
       </main>
     </div>
