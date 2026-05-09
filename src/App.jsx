@@ -3661,34 +3661,47 @@ export default function App() {
               {renderTextInput({ label: "Ara", value: portfolioSearch, onChange: setPortfolioSearch, placeholder: "Başlık, ilçe, sahip, fiyat..." })}
               {renderSelect({ label: "Tip Filtre", value: portfolioTypeFilter, onChange: setPortfolioTypeFilter, options: ["tümü", "satılık", "kiralık"] })}
             </div>
-            <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-              {filteredPortfolios.length === 0 ? renderEmpty("Portföy bulunamadı", "Henüz bu kriterlere uygun portföy kaydın yok.") : filteredPortfolios.map((item) => (
-                <div key={item.id} style={{ background: selectedPortfolio?.id === item.id ? colors.primarySoft : colors.panel2, border: `1px solid ${selectedPortfolio?.id === item.id ? colors.primary : colors.border}`, borderRadius: 18, padding: 16, display: "grid", gap: 12 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
-                    <div>
-                      <div style={{ fontWeight: 900, fontSize: 19 }}>{item.title}</div>
-                      <div style={{ color: colors.sub, marginTop: 6, fontSize: 14 }}>{item.portfolioNo || "-"} • {item.city || "-"} / {item.district || "-"}</div>
+            <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+              {filteredPortfolios.length === 0 ? renderEmpty("Portföy bulunamadı", "Henüz bu kriterlere uygun portföy kaydın yok.") : filteredPortfolios.map((item) => {
+                const isActive = selectedPortfolio?.id === item.id;
+                const statusColor = item.status === "aktif" ? colors.success : item.status === "satıldı" || item.status === "kiralandı" ? colors.primary : colors.sub;
+                return (
+                  <div key={item.id} style={{
+                    background: isActive ? (dark ? "rgba(37,99,235,0.1)" : "#eff6ff") : colors.panel2,
+                    border: `1px solid ${isActive ? colors.primary : colors.border}`,
+                    borderLeft: `3px solid ${isActive ? colors.primary : statusColor}`,
+                    borderRadius: 14,
+                    padding: "14px 16px",
+                  }}>
+                    {item.imageUrl && (
+                      <img src={item.imageUrl} alt={item.title} style={{ width: "100%", height: 140, objectFit: "cover", borderRadius: 10, marginBottom: 12, border: `1px solid ${colors.border}` }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                    )}
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
+                      <div>
+                        <div style={{ fontWeight: 900, fontSize: 15 }}>{item.title}</div>
+                        <div style={{ color: colors.sub, marginTop: 3, fontSize: 13 }}>{item.portfolioNo || "-"} • {item.city || "-"}{item.district ? ` / ${item.district}` : ""}</div>
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        <span style={statusBadge(item.portfolioType)}>{item.portfolioType}</span>
+                        <span style={statusBadge(item.status)}>{item.status}</span>
+                      </div>
                     </div>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <span style={statusBadge(item.portfolioType)}>{item.portfolioType}</span>
-                      <span style={statusBadge(item.status)}>{item.status}</span>
+                    <div style={{ fontWeight: 900, fontSize: 18, color: colors.primary, marginTop: 8 }}>{formatCurrency(item.price)}</div>
+                    <div style={{ marginTop: 6, display: "flex", gap: 16, flexWrap: "wrap", fontSize: 13 }}>
+                      <span><span style={{ color: colors.sub }}>Tip: </span><span style={{ fontWeight: 800 }}>{item.propertyType || "-"}</span></span>
+                      <span><span style={{ color: colors.sub }}>Eşleşme: </span><span style={{ fontWeight: 800 }}>{getPortfolioMatchCount(item.id)}</span></span>
+                      <span><span style={{ color: colors.sub }}>Randevu: </span><span style={{ fontWeight: 800 }}>{getPortfolioAppointmentCount(item.id)}</span></span>
+                      <span><span style={{ color: colors.sub }}>Aktif: </span><span style={{ fontWeight: 800 }}>{getPortfolioDaysActive(item)} gün</span></span>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+                      <button onClick={() => startEditPortfolio(item)} style={actionButton(false, { fontSize: 12, padding: "7px 12px" })}>Düzenle</button>
+                      <button onClick={() => openPortfolioDetail(item)} style={actionButton(false, { fontSize: 12, padding: "7px 12px" })}>Detay</button>
+                      <button onClick={() => shareOnWhatsApp(item.ownerPhone, `Merhaba ${item.ownerName || ""}, ${item.title} portföyünüz hakkında bilgi vermek istiyorum.`)} style={actionButton(false, { fontSize: 12, padding: "7px 12px", background: "#16a34a", color: "#ffffff", border: "none" })}>WhatsApp</button>
+                      <button onClick={() => removeItem("portfolios", item.id, setPortfolios)} style={actionButton(false, { fontSize: 12, padding: "7px 12px", background: colors.dangerSoft, color: colors.danger, border: `1px solid ${dark ? "rgba(248,113,113,0.2)" : "#fecaca"}` })}>Sil</button>
                     </div>
                   </div>
-                  <div style={{ fontWeight: 900, fontSize: 22 }}>{formatCurrency(item.price)}</div>
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, minmax(0, 1fr))", gap: 10 }}>
-                    <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Mülk tipi</div><div style={{ fontWeight: 800, marginTop: 5 }}>{item.propertyType || "-"}</div></div>
-                    <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Eşleşme</div><div style={{ fontWeight: 800, marginTop: 5 }}>{getPortfolioMatchCount(item.id)}</div></div>
-                    <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Randevu</div><div style={{ fontWeight: 800, marginTop: 5 }}>{getPortfolioAppointmentCount(item.id)}</div></div>
-                    <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Aktif gün</div><div style={{ fontWeight: 800, marginTop: 5 }}>{getPortfolioDaysActive(item)}</div></div>
-                  </div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <button onClick={() => startEditPortfolio(item)} style={actionButton(false)}>Düzenle</button>
-                    <button onClick={() => openPortfolioDetail(item)} style={actionButton(false)}>Detay</button>
-                    <button onClick={() => shareOnWhatsApp(item.ownerPhone, `Merhaba ${item.ownerName || ""}, ${item.title} portföyünüz hakkında bilgi vermek istiyorum.`)} style={actionButton(false, { background: "#16a34a", color: "#ffffff", border: "none" })}>WhatsApp</button>
-                    <button onClick={() => removeItem("portfolios", item.id, setPortfolios)} style={actionButton(false, { background: colors.dangerSoft, color: colors.danger, border: `1px solid ${dark ? "rgba(248,113,113,0.16)" : "#fecaca"}` })}>Sil</button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -3808,30 +3821,30 @@ export default function App() {
                 suggestionRows.map((item, index) => {
                   const scoreAppearance = getMatchScoreAppearance(item.score || 0);
                   return (
-                    <div key={`${item.customer?.id || "c"}-${item.portfolio?.id || "p"}-${index}`} style={{ background: colors.panel2, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 16, display: "grid", gap: 10 }}>
+                    <div key={`${item.customer?.id || "c"}-${item.portfolio?.id || "p"}-${index}`} style={{
+                      background: colors.panel2,
+                      border: `1px solid ${colors.border}`,
+                      borderLeft: `3px solid ${scoreAppearance.color}`,
+                      borderRadius: 14,
+                      padding: "14px 16px",
+                    }}>
                       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                        <div style={{ fontWeight: 900, fontSize: 18 }}>{item.customer?.fullName || "-"} ↔ {item.portfolio?.title || "-"}</div>
-                        <span style={{ padding: "7px 11px", borderRadius: 999, fontSize: 12, fontWeight: 900, background: scoreAppearance.background, color: scoreAppearance.color, border: `1px solid ${scoreAppearance.borderColor}` }}>{item.score}/100 • {scoreAppearance.label}</span>
+                        <div style={{ fontWeight: 900, fontSize: 14 }}>{item.customer?.fullName || "-"} <span style={{ color: colors.sub, fontWeight: 400 }}>↔</span> {item.portfolio?.title || "-"}</div>
+                        <span style={{ padding: "5px 10px", borderRadius: 8, fontSize: 12, fontWeight: 900, background: scoreAppearance.background, color: scoreAppearance.color, border: `1px solid ${scoreAppearance.borderColor}` }}>{item.score}/100 • {scoreAppearance.label}</span>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
-                        <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}>
-                          <div style={{ fontSize: 12, color: colors.sub }}>Müşteri</div>
-                          <div style={{ fontWeight: 800, marginTop: 5 }}>{item.customer?.customerType || "-"} • {item.customer?.interestedLocation || "Bölge yok"}</div>
-                          <div style={{ color: colors.sub, fontSize: 13, marginTop: 5 }}>{item.customer?.interestedPropertyType || "Tip serbest"} • {formatCurrency(item.customer?.budgetMax || item.customer?.budgetMin)}</div>
-                        </div>
-                        <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}>
-                          <div style={{ fontSize: 12, color: colors.sub }}>Portföy</div>
-                          <div style={{ fontWeight: 800, marginTop: 5 }}>{item.portfolio?.portfolioType || "-"} • {item.portfolio?.city || "-"} / {item.portfolio?.district || "-"}</div>
-                          <div style={{ color: colors.sub, fontSize: 13, marginTop: 5 }}>{item.portfolio?.propertyType || "Tip yok"} • {formatCurrency(item.portfolio?.price)}</div>
-                        </div>
+                      <div style={{ marginTop: 6, display: "flex", gap: 16, flexWrap: "wrap", fontSize: 13 }}>
+                        <span><span style={{ color: colors.sub }}>Müşteri: </span><span style={{ fontWeight: 800 }}>{item.customer?.customerType || "-"}</span> <span style={{ color: colors.sub }}>• {item.customer?.interestedLocation || "Bölge yok"} • {formatCurrency(item.customer?.budgetMax || item.customer?.budgetMin)}</span></span>
+                      </div>
+                      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 13, marginTop: 3 }}>
+                        <span><span style={{ color: colors.sub }}>Portföy: </span><span style={{ fontWeight: 800 }}>{item.portfolio?.portfolioType || "-"}</span> <span style={{ color: colors.sub }}>• {item.portfolio?.city || "-"}{item.portfolio?.district ? ` / ${item.portfolio.district}` : ""} • {formatCurrency(item.portfolio?.price)}</span></span>
                       </div>
                       {renderReasonChips(item.reasons || [], "positive")}
                       {renderReasonChips(item.mismatchReasons || [], "negative")}
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                        <button onClick={() => setMatchForm({ customerId: item.customer?.id || "", portfolioId: item.portfolio?.id || "", status: "önerildi", note: `Akıllı öneri • ${item.score}/100${item.reasons?.length ? ` • ${item.reasons.join(" • ")}` : ""}${item.mismatchReasons?.length ? ` • Dikkat: ${item.mismatchReasons.join(" • ")}` : ""}` })} style={actionButton(false)}>Forma Doldur</button>
-                        <button onClick={() => saveSuggestedMatch(item.customer?.id, item.portfolio?.id, item.score, item.reasons || [], item.mismatchReasons || [])} style={actionButton(false)}>Hızlı Eşleştir</button>
-                        <button onClick={() => openCustomerDetail(item.customer)} style={actionButton(false)}>Müşteri Aç</button>
-                        <button onClick={() => openPortfolioDetail(item.portfolio)} style={actionButton(false)}>Portföy Aç</button>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+                        <button onClick={() => setMatchForm({ customerId: item.customer?.id || "", portfolioId: item.portfolio?.id || "", status: "önerildi", note: `Akıllı öneri • ${item.score}/100${item.reasons?.length ? ` • ${item.reasons.join(" • ")}` : ""}${item.mismatchReasons?.length ? ` • Dikkat: ${item.mismatchReasons.join(" • ")}` : ""}` })} style={actionButton(false, { fontSize: 12, padding: "7px 12px" })}>Forma Doldur</button>
+                        <button onClick={() => saveSuggestedMatch(item.customer?.id, item.portfolio?.id, item.score, item.reasons || [], item.mismatchReasons || [])} style={actionButton(true, { fontSize: 12, padding: "7px 12px" })}>⚡ Hızlı Eşleştir</button>
+                        <button onClick={() => openCustomerDetail(item.customer)} style={actionButton(false, { fontSize: 12, padding: "7px 12px" })}>Müşteri</button>
+                        <button onClick={() => openPortfolioDetail(item.portfolio)} style={actionButton(false, { fontSize: 12, padding: "7px 12px" })}>Portföy</button>
                       </div>
                     </div>
                   );
@@ -3852,54 +3865,64 @@ export default function App() {
         >
           {sectionTitle("Eşleşme Listesi", "Portföy-müşteri ilgisini buradan takip et.")}
 
-          <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ display: "grid", gap: 10 }}>
             {matches.length === 0 ? (
               renderEmpty("Eşleşme bulunamadı", "İlk müşteri-portföy eşleşmeni oluştur.")
             ) : (
-              matches.map((item) => (
-                <div
-                  key={item.id}
-                  style={{
-                    background: colors.panel2,
-                    border: `1px solid ${colors.border}`,
-                    borderRadius: 18,
-                    padding: 16,
-                  }}
-                >
-                  <div style={{ fontWeight: 900, fontSize: 18 }}>
-                    {getCustomerNameById(item.customerId)} ↔ {getPortfolioTitleById(item.portfolioId)}
+              matches.map((item) => {
+                const statusColors = {
+                  "önerildi": { bar: "#6366f1", soft: dark ? "rgba(99,102,241,0.12)" : "#eef2ff" },
+                  "ilgileniyor": { bar: "#f59e0b", soft: dark ? "rgba(245,158,11,0.12)" : "#fffbeb" },
+                  "gösterildi": { bar: "#3b82f6", soft: dark ? "rgba(59,130,246,0.12)" : "#eff6ff" },
+                  "pazarlık": { bar: "#8b5cf6", soft: dark ? "rgba(139,92,246,0.12)" : "#f5f3ff" },
+                  "tamamlandı": { bar: "#16a34a", soft: dark ? "rgba(22,163,74,0.12)" : "#f0fdf4" },
+                };
+                const sc = statusColors[item.status] || statusColors["önerildi"];
+                const stepOrder = ["önerildi", "ilgileniyor", "gösterildi", "pazarlık", "tamamlandı"];
+                const currentStep = stepOrder.indexOf(item.status);
+                return (
+                  <div key={item.id} style={{
+                    background: sc.soft,
+                    border: `1px solid ${dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"}`,
+                    borderLeft: `3px solid ${sc.bar}`,
+                    borderRadius: 14,
+                    padding: "14px 16px",
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
+                      <div style={{ fontWeight: 900, fontSize: 15 }}>
+                        {getCustomerNameById(item.customerId)} <span style={{ color: colors.sub, fontWeight: 400 }}>↔</span> {getPortfolioTitleById(item.portfolioId)}
+                      </div>
+                      <span style={statusBadge(item.status)}>{item.status}</span>
+                    </div>
+
+                    <div style={{ marginTop: 10, display: "flex", gap: 4, flexWrap: "wrap" }}>
+                      {stepOrder.map((st, i) => (
+                        <button
+                          key={st}
+                          onClick={() => updateMatchStatus(item.id, st)}
+                          style={{
+                            padding: "5px 10px",
+                            borderRadius: 8,
+                            fontSize: 11,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            border: i === currentStep ? `1.5px solid ${sc.bar}` : `1px solid ${colors.border}`,
+                            background: i === currentStep ? sc.bar : colors.panel2,
+                            color: i === currentStep ? "#ffffff" : colors.sub,
+                            transition: "all 0.15s",
+                          }}
+                        >{st}</button>
+                      ))}
+                    </div>
+
+                    {item.note && <div style={{ marginTop: 8, fontSize: 12, color: colors.sub, lineHeight: 1.5, borderTop: `1px solid ${colors.border}`, paddingTop: 8 }}>{item.note}</div>}
+
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+                      <button onClick={() => removeItem("matches", item.id, setMatches)} style={actionButton(false, { fontSize: 11, padding: "5px 10px", background: colors.dangerSoft, color: colors.danger, border: `1px solid ${dark ? "rgba(248,113,113,0.2)" : "#fecaca"}` })}>Sil</button>
+                    </div>
                   </div>
-
-                  <div style={{ marginTop: 10 }}>
-                    <span style={statusBadge(item.status)}>{item.status}</span>
-                  </div>
-
-                  {item.note ? <div style={{ marginTop: 12, lineHeight: 1.6 }}>{item.note}</div> : null}
-
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
-                    {["önerildi", "ilgileniyor", "gösterildi", "pazarlık", "tamamlandı"].map((st) => (
-                      <button
-                        key={st}
-                        onClick={() => updateMatchStatus(item.id, st)}
-                        style={actionButton(false)}
-                      >
-                        {st}
-                      </button>
-                    ))}
-
-                    <button
-                      onClick={() => removeItem("matches", item.id, setMatches)}
-                      style={actionButton(false, {
-                        background: colors.dangerSoft,
-                        color: colors.danger,
-                        border: `1px solid ${dark ? "rgba(248,113,113,0.16)" : "#fecaca"}`,
-                      })}
-                    >
-                      Sil
-                    </button>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
