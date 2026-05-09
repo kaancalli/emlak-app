@@ -2652,9 +2652,6 @@ export default function App() {
       </div>
     );
   }
-      </div>
-    );
-  }
 
   function renderTextInput({ label, value, onChange, placeholder = "", type = "text" }) {
     return (
