@@ -2413,76 +2413,102 @@ export default function App() {
   }
 
   function renderSaleContracts() {
+    const sf = saleAgreementForm;
+    const set = (key) => (v) => setSaleAgreementForm({ ...saleAgreementForm, [key]: v });
+    const previewRow = (label, value) => value && value !== "-" ? (
+      <div key={label} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13, paddingBottom: 6, borderBottom: `1px solid ${colors.border}` }}>
+        <span style={{ color: colors.sub }}>{label}</span>
+        <span style={{ fontWeight: 800, textAlign: "right" }}>{value}</span>
+      </div>
+    ) : null;
+
     return (
-      <div style={pageGrid(460)}>
-        <div style={{ display: "grid", gap: 16 }}>
-          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 24, padding: 18, boxShadow: colors.shadow }}>
-            {sectionTitle("Satış Sözleşme Paneli", "Satış sözleşmesini hızlı oluştur, PDF al ve WhatsApp ile paylaş.")}
-            <div style={grid()}>
-              {renderTextInput({ label: "Sözleşme No", value: saleAgreementForm.contractNo, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, contractNo: v }) })}
-              {renderTextInput({ label: "Sözleşme Tarihi", value: saleAgreementForm.contractDate, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, contractDate: v }), type: "date" })}
-              {renderTextInput({ label: "Satıcı", value: saleAgreementForm.sellerName, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, sellerName: v }) })}
-              {renderTextInput({ label: "Satıcı Telefon", value: saleAgreementForm.sellerPhone, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, sellerPhone: v }) })}
-              {renderTextInput({ label: "Alıcı", value: saleAgreementForm.buyerName, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, buyerName: v }) })}
-              {renderTextInput({ label: "Alıcı Telefon", value: saleAgreementForm.buyerPhone, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, buyerPhone: v }) })}
-              {renderTextInput({ label: "Portföy Başlığı", value: saleAgreementForm.propertyTitle, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, propertyTitle: v }) })}
-              {renderTextInput({ label: "Tapu Bilgisi", value: saleAgreementForm.titleDeedInfo, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, titleDeedInfo: v }) })}
-              {renderTextInput({ label: "Satış Bedeli", value: saleAgreementForm.salePrice, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, salePrice: v }) })}
-              {renderTextInput({ label: "Kapora", value: saleAgreementForm.deposit, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, deposit: v }) })}
-              {renderTextInput({ label: "Komisyon Oranı (%)", value: saleAgreementForm.commissionRate, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, commissionRate: v }) })}
-              {renderTextInput({ label: "Komisyon Tutarı", value: saleAgreementForm.commissionAmount, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, commissionAmount: v }) })}
-              {renderTextInput({ label: "Teslim Tarihi", value: saleAgreementForm.deliveryDate, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, deliveryDate: v }), type: "date" })}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.1fr) minmax(300px,0.9fr)", gap: 16, alignItems: "start" }}>
+        <div style={{ display: "grid", gap: 12 }}>
+
+          {/* Taraflar */}
+          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 18, boxShadow: colors.shadowSoft }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${colors.border}` }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: colors.primarySoft, color: colors.primary, display: "grid", placeItems: "center", fontSize: 14 }}>👥</div>
+              <span style={{ fontWeight: 900, fontSize: 14 }}>Taraf Bilgileri</span>
             </div>
-            <div style={{ marginTop: 12 }}>{renderTextarea({ label: "Adres", value: saleAgreementForm.propertyAddress, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, propertyAddress: v }) })}</div>
-            <div style={{ marginTop: 12 }}>{renderTextarea({ label: "Not", value: saleAgreementForm.note, onChange: (v) => setSaleAgreementForm({ ...saleAgreementForm, note: v }) })}</div>
-            <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
+            <div style={grid()}>
+              {renderTextInput({ label: "Sözleşme No", value: sf.contractNo, onChange: set("contractNo") })}
+              {renderTextInput({ label: "Sözleşme Tarihi", value: sf.contractDate, onChange: set("contractDate"), type: "date" })}
+              {renderTextInput({ label: "Satıcı", value: sf.sellerName, onChange: set("sellerName") })}
+              {renderTextInput({ label: "Satıcı Telefon", value: sf.sellerPhone, onChange: set("sellerPhone") })}
+              {renderTextInput({ label: "Alıcı", value: sf.buyerName, onChange: set("buyerName") })}
+              {renderTextInput({ label: "Alıcı Telefon", value: sf.buyerPhone, onChange: set("buyerPhone") })}
+            </div>
+          </div>
+
+          {/* Mülk & Ödeme */}
+          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 18, boxShadow: colors.shadowSoft }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${colors.border}` }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: colors.successSoft, color: colors.success, display: "grid", placeItems: "center", fontSize: 14 }}>🏠</div>
+              <span style={{ fontWeight: 900, fontSize: 14 }}>Mülk ve Ödeme Bilgileri</span>
+            </div>
+            <div style={grid()}>
+              {renderTextInput({ label: "Portföy Başlığı", value: sf.propertyTitle, onChange: set("propertyTitle") })}
+              {renderTextInput({ label: "Tapu Bilgisi", value: sf.titleDeedInfo, onChange: set("titleDeedInfo") })}
+              {renderTextInput({ label: "Satış Bedeli (₺)", value: sf.salePrice, onChange: set("salePrice") })}
+              {renderTextInput({ label: "Kapora (₺)", value: sf.deposit, onChange: set("deposit") })}
+              {renderTextInput({ label: "Komisyon Oranı (%)", value: sf.commissionRate, onChange: set("commissionRate") })}
+              {renderTextInput({ label: "Komisyon Tutarı (₺)", value: sf.commissionAmount, onChange: set("commissionAmount") })}
+              {renderTextInput({ label: "Teslim Tarihi", value: sf.deliveryDate, onChange: set("deliveryDate"), type: "date" })}
+            </div>
+            <div style={{ marginTop: 12 }}>{renderTextarea({ label: "Adres", value: sf.propertyAddress, onChange: set("propertyAddress") })}</div>
+          </div>
+
+          {/* Not + Butonlar */}
+          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 18, boxShadow: colors.shadowSoft }}>
+            {renderTextarea({ label: "Not / Özel Koşullar", value: sf.note, onChange: set("note") })}
+            <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button onClick={exportSaleAgreementPdf} style={actionButton(true)}>📥 PDF İndir</button>
-                <button onClick={() => shareOnWhatsApp(saleAgreementForm.sellerPhone || saleAgreementForm.buyerPhone, buildSaleAgreementWhatsappText())} style={actionButton(false, { background: "#16a34a", color: "#ffffff", border: "none" })}>💬 WhatsApp Aç</button>
-                <button onClick={() => setSaleAgreementForm(emptySaleAgreement())} style={actionButton(false)}>Temizle</button>
+                <button onClick={exportSaleAgreementPdf} style={{ ...actionButton(true), flex: 1 }}>📥 PDF İndir</button>
+                <button onClick={() => shareOnWhatsApp(sf.sellerPhone || sf.buyerPhone, buildSaleAgreementWhatsappText())} style={{ ...actionButton(false, { background: "#16a34a", color: "#fff", border: "none" }), flex: 1 }}>💬 WhatsApp Aç</button>
               </div>
-              <div style={{ fontSize: 12, color: colors.sub, lineHeight: 1.6, padding: "10px 14px", background: colors.panel2, borderRadius: 14, border: `1px solid ${colors.border}` }}>
-                💡 Önce <strong>PDF İndir</strong> ile sözleşmeyi indirin, ardından <strong>WhatsApp Aç</strong> ile sohbeti başlatıp PDF'i paylaşın.
+              <button onClick={() => setSaleAgreementForm(emptySaleAgreement())} style={actionButton(false, { fontSize: 13 })}>🗑️ Formu Temizle</button>
+              <div style={{ fontSize: 12, color: colors.sub, padding: "8px 12px", background: colors.panel2, borderRadius: 10, lineHeight: 1.6 }}>
+                💡 Önce <strong>PDF İndir</strong>, ardından <strong>WhatsApp Aç</strong> ile paylaşın.
               </div>
             </div>
           </div>
         </div>
-        <div style={{ display: "grid", gap: 16 }}>
-          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 16, boxShadow: colors.shadowSoft }}>
-            {sectionTitle("Ofis Bilgileri", "PDF çıktısında görünecek ofis ve danışman bilgileri.")}
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ padding: "12px 14px", background: colors.primarySoft, borderRadius: 12, border: `1px solid ${dark ? "rgba(96,165,250,0.2)" : "rgba(37,99,235,0.15)"}`, fontSize: 13, lineHeight: 1.6 }}>
-                <div style={{ fontWeight: 900, color: colors.primary, marginBottom: 4 }}>⚙️ Ofis bilgileriniz Ayarlar sekmesinden yönetilir</div>
-                <div style={{ color: colors.sub }}>Logo, ofis adı, danışman ve iletişim bilgilerinizi Ayarlar → Ofis Profili bölümünden güncelleyebilirsiniz.</div>
-              </div>
-              {officeProfile.officeName && (
-                <div style={{ padding: "10px 14px", background: colors.panel2, borderRadius: 12, border: `1px solid ${colors.border}`, fontSize: 13 }}>
-                  <div style={{ fontWeight: 900 }}>{officeProfile.officeName}</div>
-                  {officeProfile.agentName && <div style={{ color: colors.sub, marginTop: 2 }}>Danışman: {officeProfile.agentName}</div>}
-                  {officeProfile.phone && <div style={{ color: colors.sub }}>Tel: {officeProfile.phone}</div>}
-                </div>
+
+        {/* SAĞ — Önizleme + Ofis */}
+        <div style={{ display: "grid", gap: 12, position: isMobile ? "relative" : "sticky", top: 16 }}>
+          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 18, boxShadow: colors.shadowSoft }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, paddingBottom: 12, borderBottom: `1px solid ${colors.border}` }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: sf.buyerName ? colors.success : colors.warning }} />
+              <span style={{ fontWeight: 900, fontSize: 14 }}>Canlı Önizleme</span>
+              <span style={{ fontSize: 11, color: colors.sub, marginLeft: "auto" }}>PDF 1. Sayfa</span>
+            </div>
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontWeight: 900, fontSize: 16 }}>{sf.propertyTitle || "Portföy başlığı girilmedi"}</div>
+              {sf.propertyAddress && <div style={{ fontSize: 12, color: colors.sub }}>{sf.propertyAddress}</div>}
+              <div style={{ height: 1, background: colors.border, margin: "4px 0" }} />
+              {previewRow("Satıcı", sf.sellerName)}
+              {previewRow("Alıcı", sf.buyerName)}
+              {previewRow("Satış Bedeli", formatCurrency(sf.salePrice))}
+              {previewRow("Kapora", formatCurrency(sf.deposit))}
+              {previewRow("Komisyon", sf.commissionRate ? `%${sf.commissionRate}` : null)}
+              {previewRow("Teslim", formatShortDate(sf.deliveryDate))}
+              {!sf.sellerName && !sf.buyerName && (
+                <div style={{ fontSize: 12, color: colors.sub, textAlign: "center", padding: "12px 0" }}>Formu doldurmaya başladıkça önizleme burada görünecek</div>
               )}
-              <button onClick={() => setActiveTab("settings")} style={actionButton(false, { fontSize: 13 })}>⚙️ Ayarlara Git</button>
             </div>
           </div>
           <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 16, boxShadow: colors.shadowSoft }}>
-            {sectionTitle("Satış Önizleme", "PDF çıktısında kullanılacak özet.")}
-            <div style={{ display: "grid", gap: 8, fontSize: 13 }}>
-              <div style={{ fontWeight: 900, fontSize: 15 }}>{saleAgreementForm.propertyTitle || "Portföy başlığı"}</div>
-              <div style={{ color: colors.sub }}>{saleAgreementForm.propertyAddress || "Adres bilgisi"}</div>
-              <div style={{ height: 1, background: colors.border, margin: "4px 0" }} />
-              {[
-                ["Satıcı", saleAgreementForm.sellerName || "-"],
-                ["Alıcı", saleAgreementForm.buyerName || "-"],
-                ["Satış Bedeli", formatCurrency(saleAgreementForm.salePrice)],
-                ["Komisyon", `%${saleAgreementForm.commissionRate || "-"}`],
-              ].map(([label, value]) => (
-                <div key={label} style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                  <span style={{ color: colors.sub }}>{label}</span>
-                  <span style={{ fontWeight: 800 }}>{value}</span>
-                </div>
-              ))}
-            </div>
+            <div style={{ fontWeight: 900, fontSize: 13, marginBottom: 10 }}>📋 PDF Ofis Bilgisi</div>
+            {officeProfile.officeName ? (
+              <div style={{ display: "grid", gap: 5, fontSize: 13 }}>
+                <div style={{ fontWeight: 900 }}>{officeProfile.officeName}</div>
+                {officeProfile.agentName && <div style={{ color: colors.sub }}>👤 {officeProfile.agentName}</div>}
+                {officeProfile.phone && <div style={{ color: colors.sub }}>📞 {officeProfile.phone}</div>}
+              </div>
+            ) : <div style={{ fontSize: 13, color: colors.sub }}>Ofis bilgisi eklenmemiş.</div>}
+            <button onClick={() => setActiveTab("settings")} style={{ ...actionButton(false, { fontSize: 12, padding: "7px 12px", marginTop: 10 }), width: "100%" }}>⚙️ Ofis Profilini Düzenle</button>
           </div>
         </div>
       </div>
@@ -3570,26 +3596,50 @@ export default function App() {
             boxShadow: colors.shadow,
           }}
         >
-          {sectionTitle(editingPortfolioId ? "Portföy Düzenle" : "Yeni Portföy", "Portföyün tüm ticari ve görsel bilgilerini tek yerden yönet.")}
-          <div style={grid()}>
-            {renderTextInput({ label: "Portföy No", value: portfolioForm.portfolioNo, onChange: (v) => setPortfolioForm({ ...portfolioForm, portfolioNo: v }), placeholder: "Boş bırakılırsa otomatik oluşur" })}
-            {renderTextInput({ label: "Başlık", value: portfolioForm.title, onChange: (v) => setPortfolioForm({ ...portfolioForm, title: v }) })}
-            {renderSelect({ label: "Portföy Tipi", value: portfolioForm.portfolioType, onChange: (v) => setPortfolioForm({ ...portfolioForm, portfolioType: v }), options: ["satılık", "kiralık"] })}
-            {renderTextInput({ label: "Mülk Tipi", value: portfolioForm.propertyType, onChange: (v) => setPortfolioForm({ ...portfolioForm, propertyType: v }), placeholder: "Daire, villa, arsa..." })}
-            {renderTextInput({ label: "Fiyat", value: portfolioForm.price, onChange: (v) => setPortfolioForm({ ...portfolioForm, price: v }) })}
-            {renderTextInput({ label: "Oda Sayısı", value: portfolioForm.roomCount, onChange: (v) => setPortfolioForm({ ...portfolioForm, roomCount: v }) })}
-            {renderTextInput({ label: "Brüt Alan", value: portfolioForm.grossArea, onChange: (v) => setPortfolioForm({ ...portfolioForm, grossArea: v }) })}
-            {renderTextInput({ label: "Şehir", value: portfolioForm.city, onChange: (v) => setPortfolioForm({ ...portfolioForm, city: v }) })}
-            {renderTextInput({ label: "İlçe", value: portfolioForm.district, onChange: (v) => setPortfolioForm({ ...portfolioForm, district: v }) })}
-            {renderTextInput({ label: "Adres", value: portfolioForm.address, onChange: (v) => setPortfolioForm({ ...portfolioForm, address: v }) })}
-            {renderTextInput({ label: "Mülk Sahibi", value: portfolioForm.ownerName, onChange: (v) => setPortfolioForm({ ...portfolioForm, ownerName: v }) })}
-            {renderTextInput({ label: "Sahip Telefon", value: portfolioForm.ownerPhone, onChange: (v) => setPortfolioForm({ ...portfolioForm, ownerPhone: v }) })}
-            {renderTextInput({ label: "Görsel URL", value: portfolioForm.imageUrl, onChange: (v) => setPortfolioForm({ ...portfolioForm, imageUrl: v }) })}
-            {renderSelect({ label: "Durum", value: portfolioForm.status, onChange: (v) => setPortfolioForm({ ...portfolioForm, status: v }), options: ["aktif", "satıldı", "kiralandı", "kapandı"] })}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${colors.border}` }}>
+            <div style={{ width: 30, height: 30, borderRadius: 8, background: colors.primarySoft, color: colors.primary, display: "grid", placeItems: "center", fontSize: 14 }}>🏢</div>
+            <span style={{ fontWeight: 900, fontSize: 14 }}>{editingPortfolioId ? "Portföy Düzenle" : "Yeni Portföy"}</span>
           </div>
-          <div style={{ marginTop: 12 }}>{renderTextarea({ label: "Açıklama", value: portfolioForm.description, onChange: (v) => setPortfolioForm({ ...portfolioForm, description: v }) })}</div>
-          <div style={{ marginTop: 12 }}>{renderTextarea({ label: "Not", value: portfolioForm.note, onChange: (v) => setPortfolioForm({ ...portfolioForm, note: v }) })}</div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
+
+          {/* Temel Bilgiler */}
+          <div style={{ display: "grid", gap: 8, marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${colors.border}` }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: colors.sub, textTransform: "uppercase", letterSpacing: "0.07em" }}>Temel Bilgiler</div>
+            <div style={grid()}>
+              {renderTextInput({ label: "Portföy No", value: portfolioForm.portfolioNo, onChange: (v) => setPortfolioForm({ ...portfolioForm, portfolioNo: v }), placeholder: "Boş bırakılırsa otomatik" })}
+              {renderTextInput({ label: "Başlık", value: portfolioForm.title, onChange: (v) => setPortfolioForm({ ...portfolioForm, title: v }) })}
+              {renderSelect({ label: "Portföy Tipi", value: portfolioForm.portfolioType, onChange: (v) => setPortfolioForm({ ...portfolioForm, portfolioType: v }), options: ["satılık", "kiralık"] })}
+              {renderTextInput({ label: "Mülk Tipi", value: portfolioForm.propertyType, onChange: (v) => setPortfolioForm({ ...portfolioForm, propertyType: v }), placeholder: "Daire, villa, arsa..." })}
+              {renderTextInput({ label: "Fiyat (₺)", value: portfolioForm.price, onChange: (v) => setPortfolioForm({ ...portfolioForm, price: v }) })}
+              {renderSelect({ label: "Durum", value: portfolioForm.status, onChange: (v) => setPortfolioForm({ ...portfolioForm, status: v }), options: ["aktif", "satıldı", "kiralandı", "kapandı"] })}
+            </div>
+          </div>
+
+          {/* Konum & Özellikler */}
+          <div style={{ display: "grid", gap: 8, marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${colors.border}` }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: colors.sub, textTransform: "uppercase", letterSpacing: "0.07em" }}>Konum & Özellikler</div>
+            <div style={grid()}>
+              {renderTextInput({ label: "Şehir", value: portfolioForm.city, onChange: (v) => setPortfolioForm({ ...portfolioForm, city: v }) })}
+              {renderTextInput({ label: "İlçe", value: portfolioForm.district, onChange: (v) => setPortfolioForm({ ...portfolioForm, district: v }) })}
+              {renderTextInput({ label: "Oda Sayısı", value: portfolioForm.roomCount, onChange: (v) => setPortfolioForm({ ...portfolioForm, roomCount: v }) })}
+              {renderTextInput({ label: "Brüt Alan (m²)", value: portfolioForm.grossArea, onChange: (v) => setPortfolioForm({ ...portfolioForm, grossArea: v }) })}
+              {renderTextInput({ label: "Mülk Sahibi", value: portfolioForm.ownerName, onChange: (v) => setPortfolioForm({ ...portfolioForm, ownerName: v }) })}
+              {renderTextInput({ label: "Sahip Telefon", value: portfolioForm.ownerPhone, onChange: (v) => setPortfolioForm({ ...portfolioForm, ownerPhone: v }) })}
+            </div>
+            <div style={{ marginTop: 4 }}>{renderTextInput({ label: "Adres", value: portfolioForm.address, onChange: (v) => setPortfolioForm({ ...portfolioForm, address: v }) })}</div>
+          </div>
+
+          {/* Görsel & Açıklama */}
+          <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: colors.sub, textTransform: "uppercase", letterSpacing: "0.07em" }}>Görsel & Notlar</div>
+            {renderTextInput({ label: "Görsel URL", value: portfolioForm.imageUrl, onChange: (v) => setPortfolioForm({ ...portfolioForm, imageUrl: v }) })}
+            {portfolioForm.imageUrl && (
+              <img src={portfolioForm.imageUrl} alt="önizleme" style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 10, border: `1px solid ${colors.border}` }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+            )}
+            <div style={{ marginTop: 4 }}>{renderTextarea({ label: "Açıklama", value: portfolioForm.description, onChange: (v) => setPortfolioForm({ ...portfolioForm, description: v }) })}</div>
+            <div>{renderTextarea({ label: "Not", value: portfolioForm.note, onChange: (v) => setPortfolioForm({ ...portfolioForm, note: v }) })}</div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
             <button onClick={savePortfolio} style={actionButton(true)}>{editingPortfolioId ? "Portföyü Güncelle" : "Portföy Kaydet"}</button>
             <button onClick={() => { setPortfolioForm(emptyPortfolio()); setEditingPortfolioId(null); }} style={actionButton(false)}>Temizle</button>
           </div>
@@ -4167,26 +4217,31 @@ export default function App() {
 
     return (
       <div style={pageGrid(430)}>
-        <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 24, padding: 18, boxShadow: colors.shadow }}>
-          {sectionTitle(editingContractId ? "Sözleşme Düzenle" : "Yeni Sözleşme", "Yetki sözleşmelerini takip et, uyarıları kaçırma ve yenilemeleri hızlı hazırla.")}
-          <div style={grid()}>
-            {renderTextInput({ label: "Sözleşme No", value: contractForm.contractNo, onChange: (v) => setContractForm({ ...contractForm, contractNo: v }), placeholder: "Boş bırakılırsa otomatik oluşur" })}
-            {renderTextInput({ label: "Şirket Adı", value: contractForm.companyName, onChange: (v) => setContractForm({ ...contractForm, companyName: v }) })}
-            {renderTextInput({ label: "Emlakçı", value: contractForm.agentName, onChange: (v) => setContractForm({ ...contractForm, agentName: v }) })}
-            {renderTextInput({ label: "Mülk Sahibi", value: contractForm.owner, onChange: (v) => setContractForm({ ...contractForm, owner: v }) })}
-            {renderTextInput({ label: "Telefon", value: contractForm.phone, onChange: (v) => setContractForm({ ...contractForm, phone: v }) })}
-            {renderTextInput({ label: "Mülk Tipi", value: contractForm.propertyType, onChange: (v) => setContractForm({ ...contractForm, propertyType: v }) })}
-            {renderTextInput({ label: "Satış Fiyatı", value: contractForm.salePrice, onChange: (v) => setContractForm({ ...contractForm, salePrice: v }) })}
-            {renderTextInput({ label: "Komisyon (%)", value: contractForm.commission, onChange: (v) => setContractForm({ ...contractForm, commission: v }) })}
-            {renderTextInput({ label: "Başlangıç Tarihi", value: contractForm.startDate, onChange: (v) => setContractForm({ ...contractForm, startDate: v }), type: "date" })}
-            {renderTextInput({ label: "Bitiş Tarihi", value: contractForm.endDate, onChange: (v) => setContractForm({ ...contractForm, endDate: v }), type: "date" })}
-            {renderSelect({ label: "Durum", value: contractForm.status, onChange: (v) => setContractForm({ ...contractForm, status: v }), options: ["aktif", "iptal edildi"] })}
-          </div>
-          <div style={{ marginTop: 12 }}>{renderTextarea({ label: "Adres", value: contractForm.address, onChange: (v) => setContractForm({ ...contractForm, address: v }) })}</div>
-          <div style={{ marginTop: 12 }}>{renderTextarea({ label: "Not", value: contractForm.note, onChange: (v) => setContractForm({ ...contractForm, note: v }) })}</div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
-            <button onClick={saveContract} style={actionButton(true)}>{editingContractId ? "Sözleşmeyi Güncelle" : "Sözleşme Kaydet"}</button>
-            <button onClick={() => { setContractForm(emptyContract()); setEditingContractId(null); }} style={actionButton(false)}>Temizle</button>
+        <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 18, boxShadow: colors.shadowSoft }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${colors.border}` }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: colors.primarySoft, color: colors.primary, display: "grid", placeItems: "center", fontSize: 14 }}>📄</div>
+              <span style={{ fontWeight: 900, fontSize: 14 }}>{editingContractId ? "Sözleşme Düzenle" : "Yeni Yetki Sözleşmesi"}</span>
+            </div>
+            <div style={grid()}>
+              {renderTextInput({ label: "Sözleşme No", value: contractForm.contractNo, onChange: (v) => setContractForm({ ...contractForm, contractNo: v }), placeholder: "Boş bırakılırsa otomatik" })}
+              {renderTextInput({ label: "Şirket Adı", value: contractForm.companyName, onChange: (v) => setContractForm({ ...contractForm, companyName: v }) })}
+              {renderTextInput({ label: "Emlakçı", value: contractForm.agentName, onChange: (v) => setContractForm({ ...contractForm, agentName: v }) })}
+              {renderTextInput({ label: "Mülk Sahibi", value: contractForm.owner, onChange: (v) => setContractForm({ ...contractForm, owner: v }) })}
+              {renderTextInput({ label: "Telefon", value: contractForm.phone, onChange: (v) => setContractForm({ ...contractForm, phone: v }) })}
+              {renderTextInput({ label: "Mülk Tipi", value: contractForm.propertyType, onChange: (v) => setContractForm({ ...contractForm, propertyType: v }) })}
+              {renderTextInput({ label: "Satış Fiyatı (₺)", value: contractForm.salePrice, onChange: (v) => setContractForm({ ...contractForm, salePrice: v }) })}
+              {renderTextInput({ label: "Komisyon (%)", value: contractForm.commission, onChange: (v) => setContractForm({ ...contractForm, commission: v }) })}
+              {renderTextInput({ label: "Başlangıç Tarihi", value: contractForm.startDate, onChange: (v) => setContractForm({ ...contractForm, startDate: v }), type: "date" })}
+              {renderTextInput({ label: "Bitiş Tarihi", value: contractForm.endDate, onChange: (v) => setContractForm({ ...contractForm, endDate: v }), type: "date" })}
+              {renderSelect({ label: "Durum", value: contractForm.status, onChange: (v) => setContractForm({ ...contractForm, status: v }), options: ["aktif", "iptal edildi"] })}
+            </div>
+            <div style={{ marginTop: 12 }}>{renderTextarea({ label: "Adres", value: contractForm.address, onChange: (v) => setContractForm({ ...contractForm, address: v }) })}</div>
+            <div style={{ marginTop: 12 }}>{renderTextarea({ label: "Not", value: contractForm.note, onChange: (v) => setContractForm({ ...contractForm, note: v }) })}</div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+              <button onClick={saveContract} style={actionButton(true)}>{editingContractId ? "Güncelle" : "Kaydet"}</button>
+              <button onClick={() => { setContractForm(emptyContract()); setEditingContractId(null); }} style={actionButton(false)}>Temizle</button>
+            </div>
           </div>
         </div>
 
