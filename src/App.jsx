@@ -1719,8 +1719,6 @@ export default function App() {
     if (subtitle) {
       parts.push(`<text x="${W / 2}" y="${titleY + 22}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#64748b">${escapeSvgText(subtitle)}</text>`);
     }
-    // Başlık altı çizgi
-    parts.push(`<line x1="${W / 2 - 70}" y1="${titleY + 32}" x2="${W / 2 + 70}" y2="${titleY + 32}" stroke="#2563eb" stroke-width="2"/>`);
 
     // Tablo
     let y = titleY + 52;
@@ -1776,7 +1774,7 @@ export default function App() {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${parts.join("")}</svg>`;
   }
 
-  function buildTermsPageSvg(termsText, title) {
+  function buildTermsPageSvg(termsText, title, signerLeft = "", signerMiddle = "", signerRight = "") {
     const W = 794;
     const H = 1123;
     const mX = 36;
@@ -1790,8 +1788,7 @@ export default function App() {
     parts.push(`<text x="${W - mX}" y="34" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="rgba(255,255,255,0.75)">${escapeSvgText(title)}</text>`);
     let y = 88;
     parts.push(`<text x="${W / 2}" y="${y}" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#0f172a">GENEL ŞARTLAR VE KOŞULLAR</text>`);
-    parts.push(`<line x1="${W / 2 - 80}" y1="${y + 12}" x2="${W / 2 + 80}" y2="${y + 12}" stroke="#2563eb" stroke-width="2"/>`);
-    y += 40;
+    y += 38;
     const lines = (termsText || "").split("\n").filter((l) => l.trim());
     lines.forEach((line) => {
       const wrapped = wrapSvgText(line.trim(), 88);
@@ -1799,8 +1796,25 @@ export default function App() {
       const attr = `font-family="Arial, sans-serif" font-size="${isNumbered ? 12 : 11}" font-weight="${isNumbered ? "700" : "400"}" fill="${isNumbered ? "#0f172a" : "#334155"}"`;
       parts.push(svgTextBlock(wrapped, mX + (isNumbered ? 0 : 12), y, 17, attr));
       y += wrapped.length * 17 + 6;
-      if (y > H - 60) return;
+      if (y > H - 160) return;
     });
+
+    // İmza alanı
+    const sigY = Math.max(y + 30, 930);
+    parts.push(`<line x1="${mX}" y1="${sigY - 1}" x2="${W - mX}" y2="${sigY - 1}" stroke="#cbd5e1" stroke-width="1"/>`);
+    const sigCols = [
+      [mX + 30, "Mülk Sahibi / Kiraya Veren", signerLeft || ""],
+      [W / 2 - 90, "Kiracı / Alıcı", signerMiddle || ""],
+      [W - mX - 210, "Emlakçı", signerRight || (officeProfile.agentName || officeProfile.officeName || "")],
+    ];
+    sigCols.forEach(([x, lbl, name]) => {
+      parts.push(`<text x="${x + 90}" y="${sigY + 10}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#64748b">${escapeSvgText(lbl)}</text>`);
+      parts.push(`<line x1="${x}" y1="${sigY + 46}" x2="${x + 180}" y2="${sigY + 46}" stroke="#334155" stroke-width="1.2"/>`);
+      if (name) {
+        parts.push(`<text x="${x + 90}" y="${sigY + 60}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#0f172a">${escapeSvgText(name)}</text>`);
+      }
+    });
+
     parts.push(`<text x="${W / 2}" y="${H - 14}" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8">Bu belge e-key CRM sistemi tarafından oluşturulmuştur.</text>`);
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${parts.join("")}</svg>`;
   }
@@ -1825,8 +1839,12 @@ export default function App() {
       });
       const pdf = new jsPDF({ unit: "mm", format: "a4" });
       await renderSvgPageToPdf(pdf, svg);
-      if (contractTemplates.yetkiTerms && contractTemplates.yetkiTerms.trim()) {
-        const termsSvg = buildTermsPageSvg(contractTemplates.yetkiTerms, title);
+      const isSatis = title.toLowerCase().includes("satış") || title.toLowerCase().includes("satis");
+      const termsText = isSatis
+        ? contractTemplates.satisTerms
+        : contractTemplates.yetkiTerms;
+      if (termsText && termsText.trim()) {
+        const termsSvg = buildTermsPageSvg(termsText, title, signerLeft, signerMiddle, signerRight);
         pdf.addPage();
         await renderSvgPageToPdf(pdf, termsSvg);
       }
