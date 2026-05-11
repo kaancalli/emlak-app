@@ -3179,52 +3179,182 @@ export default function App() {
       }, {})
     ).sort((a, b) => b.count - a.count).slice(0, 6);
 
-    const maxDistrictCount = districtStats.length ? Math.max(...districtStats.map((item) => item.count)) : 1;
-    const maxPortfolioScore = topPortfolios.length ? Math.max(...topPortfolios.map((item) => item.matchCount + item.appointmentCount)) : 1;
+    const maxDistrictCount = districtStats.length ? Math.max(...districtStats.map((d) => d.count)) : 1;
+    const maxPortfolioScore = topPortfolios.length ? Math.max(...topPortfolios.map((p) => p.matchCount + p.appointmentCount)) : 1;
 
-    const metricCard = (title, value, helper, accent = colors.primarySoft) => (
-      <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 22, padding: 18, boxShadow: colors.shadow }}>
-        <div style={{ color: colors.sub, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.08em" }}>{title}</div>
-        <div style={{ fontSize: 28, fontWeight: 900, marginTop: 8 }}>{value}</div>
-        <div style={{ color: colors.sub, marginTop: 8, lineHeight: 1.6 }}>{helper}</div>
-        <div style={{ marginTop: 14, height: 6, borderRadius: 999, background: accent }} />
+    // Aylık randevu verisi (son 6 ay)
+    const monthlyData = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - (5 - i));
+      const key = d.toISOString().slice(0, 7);
+      const label = d.toLocaleDateString("tr-TR", { month: "short" });
+      return {
+        label,
+        count: appointments.filter((a) => (a.date || "").startsWith(key)).length,
+        completed: appointments.filter((a) => (a.date || "").startsWith(key) && a.status === "tamamlandı").length,
+      };
+    });
+    const maxMonthly = Math.max(...monthlyData.map((m) => m.count), 1);
+
+    // Portföy tipi dağılımı
+    const portfolioByType = ["satılık", "kiralık"].map((type) => ({
+      label: type,
+      count: portfolios.filter((p) => p.portfolioType === type).length,
+      value: portfolios.filter((p) => p.portfolioType === type).reduce((s, p) => s + parsePrice(p.price), 0),
+    }));
+
+    // Portföy durum dağılımı
+    const portfolioByStatus = ["aktif", "satıldı", "kiralandı", "kapandı"].map((st) => ({
+      label: st,
+      count: portfolios.filter((p) => p.status === st).length,
+      color: st === "aktif" ? colors.success : st === "satıldı" ? colors.primary : st === "kiralandı" ? "#8b5cf6" : colors.sub,
+    })).filter((s) => s.count > 0);
+
+    const statRow = (label, value, accent) => (
+      <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: `1px solid ${colors.border}` }}>
+        <span style={{ color: colors.sub, fontSize: 13 }}>{label}</span>
+        <span style={{ fontWeight: 900, fontSize: 14, color: accent || colors.text }}>{value}</span>
       </div>
     );
 
     return (
-      <div style={{ display: "grid", gap: 16 }}>
-        {sectionTitle("Raporlar", "Portföy, müşteri ve randevu verilerini yönetim bakışıyla takip et.")}
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, minmax(0, 1fr))", gap: 12 }}>
-          {metricCard("Toplam Portföy Değeri", formatCurrency(totalPortfolioValue), "Kayıtlı portföylerin ilan değer toplamı", colors.primarySoft)}
-          {metricCard("Sonuçlanan İşlem", closedPortfolioCount, "Satılan veya kiralanan portföy sayısı", colors.successSoft)}
-          {metricCard("Tamamlanan Görüşme", completedAppointments, "Tamamlandı durumuna alınan randevular", colors.warningSoft)}
-          {metricCard("Tamamlanan Eşleşme", completedMatches, "Sonuçlanan müşteri-portföy eşleşmeleri", colors.dangerSoft)}
+      <div style={{ display: "grid", gap: 14 }}>
+
+        {/* ÜST METRİKLER */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, minmax(0,1fr))", gap: 12 }}>
+          {[
+            { label: "Portföy Değeri", value: formatCurrency(totalPortfolioValue), icon: "💰", color: colors.primary, soft: colors.primarySoft },
+            { label: "Sonuçlanan İşlem", value: closedPortfolioCount, icon: "✅", color: colors.success, soft: colors.successSoft },
+            { label: "Tamamlanan Görüşme", value: completedAppointments, icon: "🤝", color: "#f59e0b", soft: colors.warningSoft },
+            { label: "Tamamlanan Eşleşme", value: completedMatches, icon: "🔗", color: "#8b5cf6", soft: dark ? "rgba(139,92,246,0.12)" : "#f5f3ff" },
+          ].map(({ label, value, icon, color, soft }) => (
+            <div key={label} style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 16, padding: "16px 18px", boxShadow: colors.shadowSoft, borderLeft: `3px solid ${color}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: soft, display: "grid", placeItems: "center", fontSize: 17 }}>{icon}</div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: colors.sub, textTransform: "uppercase", letterSpacing: "0.07em" }}>{label}</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, marginTop: 2, color }}>{value}</div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.15fr) minmax(0, 0.85fr)", gap: 16 }}>
-          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 24, padding: 18, boxShadow: colors.shadow }}>
-            {sectionTitle("En Çok İlgi Gören Portföyler", "Eşleşme ve randevu toplamına göre en aktif portföyler.")}
-            {topPortfolios.length === 0 ? renderEmpty("Portföy verisi yok", "Portföy ve eşleşme oluştuğunda burada performans görünür.") : (
-              <div style={{ display: "grid", gap: 12 }}>
-                {topPortfolios.map((item) => {
+        {/* AYLIK RANDEVU GRAFİĞİ */}
+        <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 18, boxShadow: colors.shadowSoft }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+            <div>
+              <div style={{ fontWeight: 900, fontSize: 15 }}>Aylık Randevu Trendi</div>
+              <div style={{ fontSize: 12, color: colors.sub, marginTop: 3 }}>Son 6 ayın randevu ve tamamlama performansı</div>
+            </div>
+            <div style={{ display: "flex", gap: 14, fontSize: 12 }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: colors.primary, display: "inline-block" }} /> Planlanan</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: colors.success, display: "inline-block" }} /> Tamamlanan</span>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-end", height: 140 }}>
+            {monthlyData.map((m) => (
+              <div key={m.label} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                <div style={{ fontSize: 11, color: colors.sub, fontWeight: 800 }}>{m.count}</div>
+                <div style={{ width: "100%", display: "flex", gap: 3, alignItems: "flex-end", height: 100 }}>
+                  <div style={{ flex: 1, background: dark ? "rgba(37,99,235,0.5)" : "#bfdbfe", borderRadius: "4px 4px 0 0", height: `${Math.max(4, (m.count / maxMonthly) * 100)}%`, transition: "height 0.3s" }} />
+                  <div style={{ flex: 1, background: colors.success, borderRadius: "4px 4px 0 0", height: `${Math.max(4, (m.completed / maxMonthly) * 100)}%`, transition: "height 0.3s" }} />
+                </div>
+                <div style={{ fontSize: 11, color: colors.sub, fontWeight: 700 }}>{m.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ORTA SATIR */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 14 }}>
+
+          {/* Portföy Dağılımı */}
+          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 18, boxShadow: colors.shadowSoft }}>
+            <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 14, paddingBottom: 12, borderBottom: `1px solid ${colors.border}` }}>Portföy Dağılımı</div>
+            <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
+              {portfolioByType.map((t) => (
+                <div key={t.label}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}>
+                    <span style={{ textTransform: "capitalize", fontWeight: 700 }}>{t.label}</span>
+                    <span style={{ fontWeight: 900 }}>{t.count}</span>
+                  </div>
+                  <div style={{ height: 8, borderRadius: 999, background: colors.panel2, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${totalPortfolios ? (t.count / totalPortfolios) * 100 : 0}%`, background: t.label === "satılık" ? colors.primary : "#8b5cf6", borderRadius: 999 }} />
+                  </div>
+                  <div style={{ fontSize: 11, color: colors.sub, marginTop: 3 }}>{formatCurrency(t.value)}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "grid", gap: 6 }}>
+              {portfolioByStatus.map((s) => (
+                <div key={s.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: s.color, display: "inline-block" }} />
+                    {s.label}
+                  </span>
+                  <span style={{ fontWeight: 900, fontSize: 13 }}>{s.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Sözleşme & Randevu */}
+          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 18, boxShadow: colors.shadowSoft }}>
+            <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 14, paddingBottom: 12, borderBottom: `1px solid ${colors.border}` }}>Sözleşme & Randevu</div>
+            {statRow("Aktif sözleşme", activeContracts, colors.success)}
+            {statRow("Kritik sözleşme", expiringContracts, colors.danger)}
+            {statRow("Komisyon pot.", formatCurrency(contracts.reduce((s, i) => s + parsePrice(i.salePrice) * (Number(i.commission || 0) / 100), 0)), colors.primary)}
+            <div style={{ height: 1, background: colors.border, margin: "10px 0" }} />
+            {statRow("Bu ay randevu", appointmentThisMonth)}
+            {statRow("Bugün randevu", todayAppointments)}
+            {statRow("Gecikmiş", overdueAppointments, overdueAppointments > 0 ? colors.danger : colors.sub)}
+            {statRow("Tamamlanan", completedAppointments, colors.success)}
+          </div>
+
+          {/* Müşteri & Eşleşme */}
+          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 18, boxShadow: colors.shadowSoft }}>
+            <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 14, paddingBottom: 12, borderBottom: `1px solid ${colors.border}` }}>Müşteri & Eşleşme</div>
+            {statRow("Toplam müşteri", totalCustomers)}
+            {statRow("Alıcı", customers.filter((c) => c.customerType === "alıcı").length)}
+            {statRow("Satıcı", customers.filter((c) => c.customerType === "satıcı").length)}
+            {statRow("Kiracı", customers.filter((c) => c.customerType === "kiracı").length)}
+            <div style={{ height: 1, background: colors.border, margin: "10px 0" }} />
+            {statRow("Toplam eşleşme", totalMatches)}
+            {statRow("Sonuçlanan", completedMatches, colors.success)}
+            {statRow("P/M oranı", totalCustomers ? (totalPortfolios / totalCustomers).toFixed(2) : "0.00")}
+          </div>
+        </div>
+
+        {/* ALT SATIR */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.3fr 0.7fr", gap: 14 }}>
+          {/* En İlgi Gören Portföyler */}
+          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 18, boxShadow: colors.shadowSoft }}>
+            <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 14, paddingBottom: 12, borderBottom: `1px solid ${colors.border}` }}>En Çok İlgi Gören Portföyler</div>
+            {topPortfolios.length === 0 ? renderEmpty("Veri yok", "Portföy ve eşleşme oluştuğunda burada görünür.") : (
+              <div style={{ display: "grid", gap: 10 }}>
+                {topPortfolios.map((item, i) => {
                   const score = item.matchCount + item.appointmentCount;
-                  const percent = maxPortfolioScore ? Math.max(8, Math.round((score / maxPortfolioScore) * 100)) : 8;
+                  const pct = maxPortfolioScore ? Math.max(6, Math.round((score / maxPortfolioScore) * 100)) : 6;
                   return (
-                    <button key={item.id} onClick={() => openPortfolioDetail(item)} style={{ background: colors.panel2, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 14, textAlign: "left", cursor: "pointer" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                        <div>
-                          <div style={{ fontWeight: 900 }}>{item.title}</div>
-                          <div style={{ color: colors.sub, fontSize: 13, marginTop: 4 }}>{item.city || "-"} / {item.district || "-"} • {formatCurrency(item.price)}</div>
+                    <button key={item.id} onClick={() => openPortfolioDetail(item)} style={{ background: colors.panel2, border: `1px solid ${colors.border}`, borderLeft: `3px solid ${colors.primary}`, borderRadius: 12, padding: "11px 14px", textAlign: "left", cursor: "pointer", width: "100%" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ width: 22, height: 22, borderRadius: 6, background: colors.primarySoft, color: colors.primary, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 900 }}>{i + 1}</div>
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: 13 }}>{item.title}</div>
+                            <div style={{ color: colors.sub, fontSize: 11, marginTop: 2 }}>{item.city || "-"} • {formatCurrency(item.price)}</div>
+                          </div>
                         </div>
                         <span style={statusBadge(item.status)}>{item.status}</span>
                       </div>
-                      <div style={{ marginTop: 12, height: 8, borderRadius: 999, background: colors.panel3, overflow: "hidden", border: `1px solid ${colors.border}` }}>
-                        <div style={{ width: `${percent}%`, height: "100%", background: `linear-gradient(90deg, ${colors.primary} 0%, ${dark ? "#38bdf8" : "#60a5fa"} 100%)` }} />
+                      <div style={{ marginTop: 8, height: 5, borderRadius: 999, background: colors.panel3, overflow: "hidden" }}>
+                        <div style={{ width: `${pct}%`, height: "100%", background: colors.primary, borderRadius: 999 }} />
                       </div>
-                      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 10, color: colors.sub, fontSize: 13 }}>
-                        <span>{item.matchCount} eşleşme</span>
-                        <span>{item.appointmentCount} randevu</span>
-                        <span>{getPortfolioDaysActive(item)} gün aktif</span>
+                      <div style={{ display: "flex", gap: 12, marginTop: 6, fontSize: 11, color: colors.sub }}>
+                        <span>🔗 {item.matchCount}</span>
+                        <span>📅 {item.appointmentCount}</span>
+                        <span>⏱ {getPortfolioDaysActive(item)} gün</span>
                       </div>
                     </button>
                   );
@@ -3232,53 +3362,26 @@ export default function App() {
               </div>
             )}
           </div>
-          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 24, padding: 18, boxShadow: colors.shadow }}>
-            {sectionTitle("Yoğun Bölgeler", "Portföy yoğunluğunun en çok olduğu şehir / ilçe dağılımı.")}
-            {districtStats.length === 0 ? renderEmpty("Bölge verisi yok", "Portföylerin şehir ve ilçe bilgisiyle burada analiz oluşur.") : (
-              <div style={{ display: "grid", gap: 12 }}>
+
+          {/* Yoğun Bölgeler */}
+          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 18, boxShadow: colors.shadowSoft }}>
+            <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 14, paddingBottom: 12, borderBottom: `1px solid ${colors.border}` }}>Yoğun Bölgeler</div>
+            {districtStats.length === 0 ? renderEmpty("Veri yok", "") : (
+              <div style={{ display: "grid", gap: 10 }}>
                 {districtStats.map((item) => (
-                  <div key={item.label} style={{ background: colors.panel2, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 14 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-                      <strong>{item.label}</strong>
-                      <span style={statusBadge("aktif")}>{item.count} portföy</span>
+                  <div key={item.label}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}>
+                      <span style={{ fontWeight: 700 }}>{item.label}</span>
+                      <span style={{ fontWeight: 900, color: colors.success }}>{item.count}</span>
                     </div>
-                    <div style={{ marginTop: 12, height: 8, borderRadius: 999, background: colors.panel3, overflow: "hidden", border: `1px solid ${colors.border}` }}>
-                      <div style={{ width: `${Math.max(8, Math.round((item.count / maxDistrictCount) * 100))}%`, height: "100%", background: `linear-gradient(90deg, ${colors.success} 0%, ${dark ? "#4ade80" : "#22c55e"} 100%)` }} />
+                    <div style={{ height: 6, borderRadius: 999, background: colors.panel2, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${Math.max(6, Math.round((item.count / maxDistrictCount) * 100))}%`, background: colors.success, borderRadius: 999 }} />
                     </div>
-                    <div style={{ color: colors.sub, fontSize: 13, marginTop: 8 }}>Toplam değer: {formatCurrency(item.totalValue)}</div>
+                    <div style={{ fontSize: 11, color: colors.sub, marginTop: 3 }}>{formatCurrency(item.totalValue)}</div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: 16 }}>
-          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 24, padding: 18, boxShadow: colors.shadow }}>
-            {sectionTitle("Randevu Özeti", "Takvim performansını hızlıca gör.")}
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: colors.sub }}>Bu ay planlanan</span><strong>{appointmentThisMonth}</strong></div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: colors.sub }}>Bugünkü randevu</span><strong>{todayAppointments}</strong></div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: colors.sub }}>Tamamlanan</span><strong>{completedAppointments}</strong></div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: colors.sub }}>Geciken</span><strong>{overdueAppointments}</strong></div>
-            </div>
-          </div>
-          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 24, padding: 18, boxShadow: colors.shadow }}>
-            {sectionTitle("Sözleşme Sağlığı", "Yetki sözleşmelerinin güncel dağılımı.")}
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: colors.sub }}>Aktif</span><strong>{activeContracts}</strong></div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: colors.sub }}>Kritik</span><strong>{expiringContracts}</strong></div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: colors.sub }}>Komisyon potansiyeli</span><strong>{formatCurrency(contracts.reduce((sum, item) => sum + parsePrice(item.salePrice) * ((Number(item.commission || 0) || 0) / 100), 0))}</strong></div>
-            </div>
-          </div>
-          <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 24, padding: 18, boxShadow: colors.shadow }}>
-            {sectionTitle("Müşteri ve Eşleşme", "CRM hareketliliğini hızlı ölç.")}
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: colors.sub }}>Toplam müşteri</span><strong>{totalCustomers}</strong></div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: colors.sub }}>Toplam eşleşme</span><strong>{totalMatches}</strong></div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: colors.sub }}>Sonuçlanan eşleşme</span><strong>{completedMatches}</strong></div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: colors.sub }}>Portföy / müşteri oranı</span><strong>{totalCustomers ? (totalPortfolios / totalCustomers).toFixed(2) : "0.00"}</strong></div>
-            </div>
           </div>
         </div>
       </div>
@@ -3393,99 +3496,129 @@ export default function App() {
 
         <div style={{ display: "grid", gap: 16 }}>
           {selectedCustomer ? (
-            <div
-              style={{
-                background: colors.panel,
-                border: `1px solid ${colors.border}`,
-                borderRadius: 24,
-                padding: 18,
-                boxShadow: colors.shadow,
-              }}
-            >
-              {sectionTitle("Seçili Müşteri Analizi", "Otomatik portföy önerilerini ve ilişki geçmişini tek bakışta gör.")}
-              <div style={{ display: "grid", gap: 14 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
+            <div style={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 18, padding: 18, boxShadow: colors.shadowSoft }}>
+
+              {/* MÜŞTERİ HEADER */}
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap", marginBottom: 18, paddingBottom: 16, borderBottom: `1px solid ${colors.border}` }}>
+                <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 14, background: colors.primarySoft, color: colors.primary, display: "grid", placeItems: "center", fontSize: 20, fontWeight: 900, flexShrink: 0 }}>
+                    {(selectedCustomer.fullName || "?")[0].toUpperCase()}
+                  </div>
                   <div>
-                    <div style={{ fontWeight: 900, fontSize: 20 }}>{selectedCustomer.fullName}</div>
-                    <div style={{ color: colors.sub, marginTop: 6, lineHeight: 1.7 }}>
+                    <div style={{ fontWeight: 900, fontSize: 18 }}>{selectedCustomer.fullName}</div>
+                    <div style={{ color: colors.sub, fontSize: 13, marginTop: 3 }}>
                       {selectedCustomer.phone || "Telefon yok"}
                       {selectedCustomer.email ? ` • ${selectedCustomer.email}` : ""}
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <span style={statusBadge(selectedCustomer.customerType)}>{selectedCustomer.customerType}</span>
-                    {selectedCustomer.interestedPropertyType ? <span style={statusBadge("önerildi")}>{selectedCustomer.interestedPropertyType}</span> : null}
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={statusBadge(selectedCustomer.customerType)}>{selectedCustomer.customerType}</span>
+                  {selectedCustomer.interestedPropertyType && <span style={statusBadge("önerildi")}>{selectedCustomer.interestedPropertyType}</span>}
+                  <button onClick={() => shareOnWhatsApp(selectedCustomer.phone, `Merhaba ${selectedCustomer.fullName}, sizin için uygun portföyleri paylaşabilirim.`)} style={actionButton(false, { fontSize: 12, padding: "6px 12px", background: "#16a34a", color: "#fff", border: "none" })}>💬 WhatsApp</button>
+                  <button onClick={() => startEditCustomer(selectedCustomer)} style={actionButton(false, { fontSize: 12, padding: "6px 12px" })}>Düzenle</button>
+                  <button onClick={() => setSelectedCustomer(null)} style={actionButton(false, { fontSize: 12, padding: "6px 12px" })}>✕ Kapat</button>
+                </div>
+              </div>
+
+              {/* İSTEK BİLGİLERİ */}
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, minmax(0,1fr))", gap: 10, marginBottom: 18 }}>
+                {[
+                  ["📍 Bölge", selectedCustomer.interestedLocation || "-"],
+                  ["💰 Bütçe", `${formatCurrency(selectedCustomer.budgetMin)} – ${formatCurrency(selectedCustomer.budgetMax || selectedCustomer.budgetMin)}`],
+                  ["🔗 Eşleşme", getCustomerMatchCount(selectedCustomer.id)],
+                  ["📅 Randevu", getCustomerAppointmentCount(selectedCustomer.id)],
+                ].map(([label, value]) => (
+                  <div key={label} style={{ background: colors.panel2, borderRadius: 12, padding: "10px 14px", border: `1px solid ${colors.border}` }}>
+                    <div style={{ fontSize: 11, color: colors.sub, fontWeight: 700 }}>{label}</div>
+                    <div style={{ fontWeight: 900, fontSize: 14, marginTop: 4 }}>{value}</div>
                   </div>
+                ))}
+              </div>
+
+              {selectedCustomer.note && (
+                <div style={{ marginBottom: 18, padding: "10px 14px", background: colors.warningSoft, borderRadius: 12, border: `1px solid ${dark ? "rgba(245,158,11,0.2)" : "#fde68a"}`, fontSize: 13, color: colors.text }}>
+                  📝 {selectedCustomer.note}
+                </div>
+              )}
+
+              {/* 3 SÜTUN */}
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 14 }}>
+
+                {/* Önerilen Portföyler */}
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: 13, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                    <span>⭐ Önerilen Portföyler</span>
+                    {suggestedPortfolios.length > 0 && <span style={{ fontSize: 11, background: colors.primarySoft, color: colors.primary, borderRadius: 999, padding: "2px 8px", fontWeight: 800 }}>{suggestedPortfolios.length}</span>}
+                  </div>
+                  {suggestedPortfolios.length ? (
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {suggestedPortfolios.slice(0, 4).map((item) => {
+                        const sa = getMatchScoreAppearance(item._matchScore || 0);
+                        return (
+                          <div key={item.id} style={{ background: colors.panel2, border: `1px solid ${colors.border}`, borderLeft: `3px solid ${sa.color}`, borderRadius: 12, padding: "11px 13px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                              <div style={{ fontWeight: 800, fontSize: 13 }}>{item.title}</div>
+                              <span style={{ fontSize: 11, fontWeight: 900, background: sa.background, color: sa.color, borderRadius: 6, padding: "3px 7px", border: `1px solid ${sa.borderColor}`, whiteSpace: "nowrap" }}>{item._matchScore}/100</span>
+                            </div>
+                            <div style={{ fontSize: 12, color: colors.sub, marginTop: 4 }}>{item.city || "-"} • {formatCurrency(item.price)}</div>
+                            {renderReasonChips(item._matchReasons || [], "positive")}
+                            {renderReasonChips(item._matchMismatchReasons || [], "negative")}
+                            <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                              <button onClick={() => openPortfolioDetail(item)} style={actionButton(false, { fontSize: 11, padding: "5px 10px" })}>Aç</button>
+                              <button onClick={() => saveSuggestedMatch(selectedCustomer.id, item.id, item._matchScore, item._matchReasons || [], item._matchMismatchReasons || [])} style={actionButton(true, { fontSize: 11, padding: "5px 10px" })}>⚡ Eşleştir</button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : renderEmpty("Öneri yok", "Bütçe ve bölge uyumlu portföy bulunamadı.")}
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, minmax(0, 1fr))", gap: 10 }}>
-                  <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Bölge</div><div style={{ fontWeight: 800, marginTop: 5 }}>{selectedCustomer.interestedLocation || "-"}</div></div>
-                  <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Bütçe</div><div style={{ fontWeight: 800, marginTop: 5 }}>{formatCurrency(selectedCustomer.budgetMin)} - {formatCurrency(selectedCustomer.budgetMax || selectedCustomer.budgetMin)}</div></div>
-                  <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Mevcut Eşleşme</div><div style={{ fontWeight: 800, marginTop: 5 }}>{getCustomerMatchCount(selectedCustomer.id)}</div></div>
-                  <div style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}><div style={{ fontSize: 12, color: colors.sub }}>Randevu</div><div style={{ fontWeight: 800, marginTop: 5 }}>{getCustomerAppointmentCount(selectedCustomer.id)}</div></div>
+                {/* Mevcut Eşleşmeler */}
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: 13, marginBottom: 10 }}>🔗 Mevcut Eşleşmeler</div>
+                  {selectedCustomerMatches.length ? (
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {selectedCustomerMatches.map((item) => (
+                        <div key={item.id} style={{ background: colors.panel2, border: `1px solid ${colors.border}`, borderLeft: `3px solid ${item.status === "tamamlandı" ? colors.success : colors.primary}`, borderRadius: 12, padding: "11px 13px" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                            <div style={{ fontWeight: 800, fontSize: 13 }}>{item.portfolio?.title || "-"}</div>
+                            <span style={statusBadge(item.status)}>{item.status}</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: colors.sub, marginTop: 4 }}>
+                            {item.portfolio?.city || "-"} • {formatCurrency(item.portfolio?.price)}
+                          </div>
+                          {item.note && <div style={{ fontSize: 11, color: colors.sub, marginTop: 4, fontStyle: "italic" }}>{item.note.slice(0, 80)}{item.note.length > 80 ? "..." : ""}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  ) : renderEmpty("Eşleşme yok", "Henüz kayıtlı eşleşme bulunmuyor.")}
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 }}>
-                  <div style={{ background: colors.panel2, border: `1px solid ${colors.border}`, borderRadius: 20, padding: 14 }}>
-                    <div style={{ fontWeight: 900, marginBottom: 10 }}>Önerilen Portföyler</div>
-                    {suggestedPortfolios.length ? (
-                      <div style={{ display: "grid", gap: 10 }}>
-                        {suggestedPortfolios.map((item) => {
-                          const scoreAppearance = getMatchScoreAppearance(item._matchScore || 0);
-                          return (
-                            <div key={item.id} style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12, display: "grid", gap: 8 }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                                <strong>{item.title}</strong>
-                                <span style={{ padding: "7px 11px", borderRadius: 999, fontSize: 12, fontWeight: 900, background: scoreAppearance.background, color: scoreAppearance.color, border: `1px solid ${scoreAppearance.borderColor}` }}>{item._matchScore}/100 • {scoreAppearance.label}</span>
-                              </div>
-                              <div style={{ color: colors.sub, fontSize: 13 }}>
-                                {item.city || "-"} / {item.district || "-"} • {item.propertyType || "Tip yok"} • {formatCurrency(item.price)}
-                              </div>
-                              {renderReasonChips(item._matchReasons || [], "positive")}
-                              {renderReasonChips(item._matchMismatchReasons || [], "negative")}
-                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                <button onClick={() => openPortfolioDetail(item)} style={actionButton(false, { padding: "9px 12px", fontSize: 13 })}>Portföy Aç</button>
-                                <button onClick={() => saveSuggestedMatch(selectedCustomer.id, item.id, item._matchScore, item._matchReasons || [], item._matchMismatchReasons || [])} style={actionButton(false, { padding: "9px 12px", fontSize: 13 })}>Hızlı Eşleştir</button>
-                              </div>
+                {/* Randevular */}
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: 13, marginBottom: 10 }}>📅 Randevular</div>
+                  {selectedCustomerAppointments.length ? (
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {selectedCustomerAppointments.map((item) => {
+                        const status = getAppointmentVisualStatus(item);
+                        const isLate = status === "gecikti" || status === "gecikmiş";
+                        return (
+                          <div key={item.id} style={{ background: colors.panel2, border: `1px solid ${colors.border}`, borderLeft: `3px solid ${isLate ? colors.danger : colors.primary}`, borderRadius: 12, padding: "11px 13px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                              <div style={{ fontWeight: 800, fontSize: 13 }}>{item.title}</div>
+                              <span style={statusBadge(status)}>{status}</span>
                             </div>
-                          );
-                        })}
-                      </div>
-                    ) : <div style={{ color: colors.sub }}>Bu müşteri için öne çıkan portföy önerisi bulunamadı.</div>}
-                  </div>
-
-                  <div style={{ display: "grid", gap: 16 }}>
-                    <div style={{ background: colors.panel2, border: `1px solid ${colors.border}`, borderRadius: 20, padding: 14 }}>
-                      <div style={{ fontWeight: 900, marginBottom: 10 }}>Mevcut Eşleşmeler</div>
-                      {selectedCustomerMatches.length ? (
-                        <div style={{ display: "grid", gap: 10 }}>
-                          {selectedCustomerMatches.slice(0, 4).map((item) => (
-                            <div key={item.id} style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                                <strong>{item.portfolio?.title || "-"}</strong>
-                                <span style={statusBadge(item.status)}>{item.status}</span>
-                              </div>
-                              <div style={{ color: colors.sub, fontSize: 13, marginTop: 6 }}>{item.portfolio?.city || "-"} / {item.portfolio?.district || "-"} • {formatCurrency(item.portfolio?.price)}</div>
+                            <div style={{ fontSize: 12, color: colors.sub, marginTop: 4 }}>
+                              📅 {formatLongDateTime(item.date, item.time)}
                             </div>
-                          ))}
-                        </div>
-                      ) : <div style={{ color: colors.sub }}>Bu müşteri için henüz kayıtlı eşleşme yok.</div>}
+                            {item.location && <div style={{ fontSize: 12, color: colors.sub }}>📍 {item.location}</div>}
+                          </div>
+                        );
+                      })}
                     </div>
-
-                    <div style={{ background: colors.panel2, border: `1px solid ${colors.border}`, borderRadius: 20, padding: 14 }}>
-                      <div style={{ fontWeight: 900, marginBottom: 10 }}>Yaklaşan Randevular</div>
-                      {selectedCustomerAppointments.length ? (
-                        <div style={{ display: "grid", gap: 10 }}>
-                          {selectedCustomerAppointments.slice(0, 4).map((item) => (
-                            <div key={item.id} style={{ background: colors.panel3, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 12 }}>
-                              <strong>{item.title}</strong>
-                              <div style={{ color: colors.sub, fontSize: 13, marginTop: 6 }}>{formatLongDateTime(item.date, item.time)} • {getPortfolioTitleById(item.portfolioId)}</div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : <div style={{ color: colors.sub }}>Bu müşteri için planlanmış randevu görünmüyor.</div>}
-                    </div>
-                  </div>
+                  ) : renderEmpty("Randevu yok", "Bu müşteri için randevu planlanmamış.")}
                 </div>
               </div>
             </div>
